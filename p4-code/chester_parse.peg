@@ -1,0 +1,60 @@
+# chester_parse.peg: input file to create a PEG parser using the
+# packcc parser-generator
+# -*- mode: Peg;-*-
+
+%prefix "chester_peg"           # prefix for functions created by the parser generators
+%value  "char *"                # return types for parsing expressions
+%auxil  "suite_t *"             # user data avialble during parsing
+
+%header {
+#include "chester.h"
+}      
+
+%source {
+#include "chester.h"
+#define PCC_GETCHAR(suite) fgetc(suite->infile)
+// input comes from an input file within the suite data type
+}
+
+suite <- gdirective* wsl* test*
+
+gdirective <- "!" <[A-z_][A-z_0-9]*> "=" <(!"\n" .)*> "\n"
+{
+  suite_do_global_directive(auxil, $1 , $2);
+}
+
+test <- title description ldirective* wsl* input_block? wsl* output_block* wsl*
+{
+  auxil->tests_count++;
+}
+
+title <- "# " <[^\n]+> "\n" 
+{
+  auxil->tests[auxil->tests_count].title = strdup($1);
+}
+
+ldirective <- "!" <[A-z_][A-z_0-9]*> "=" <(!"\n" .)*> "\n"
+{
+  suite_do_local_directive(auxil, $1 , $2);
+}
+
+description <- (!"# " !"!" !"```" [^\n]* "\n")*
+{
+  auxil->tests[auxil->tests_count].description = strdup($0);
+}
+
+input_block <- "```input\n" <(!"```" .)*> "```\n"
+{
+  // printf("adding input for test %d\n",auxil->tests_count);
+  auxil->tests[auxil->tests_count].input = strdup($1);
+}
+
+output_block <- "```output\n" <(!"```" .)*> "```\n"
+{
+  // printf("adding output for test %d\n",auxil->tests_count);
+  auxil->tests[auxil->tests_count].output_expect = strdup($1);
+}
+
+wsl <- ([ \t]* "\n") # {printf("ignoring whitespace %ld to %ld\n",$0s,$0e); }
+
+%%

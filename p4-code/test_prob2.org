@@ -1,0 +1,925 @@
+#+TITLE: Problem 2 Chester Functions
+#+TESTY: PREFIX="prob2"
+#+TESTY: USE_VALGRIND=1
+# disable memory leak detection in forked children
+#+TESTY: VALGRIND_OPTS="--child-silent-after-fork=yes"
+#+TESTY: USE_STDBUF=1
+
+# UPDATED: Thu Nov 14 05:20:52 PM EST 2024
+
+* suite_test_start1
+#+TESTY: program='./test_chester suite_test_start1'
+#+BEGIN_SRC sh
+IF_TEST("suite_test_start1") {
+    // Checks whether starting a test sets the outfile_name, creates a
+    // child process to run the tested program. The program has no
+    // output so output redirection is not checked.
+    suite_t suite = {
+      .testdir = strdup("test-results/testdirS1"),
+      .prefix = strdup("prefS1"),
+      .tests_count = 10,
+    };
+    suite_create_testdir(&suite);
+    test_t *test = &suite.tests[7];
+    test->program = strdup("true");
+    ret = suite_test_start(&suite, 7);
+    test_state_t state = test->state;
+    printf("test state: %s (%d)\n",test_state_str(state),state);
+    if(ret != 0){ printf("Non-zero wait() return\n"); }
+    pid_t child_pid = test->child_pid;
+    printf("child_pid is %s\n",
+           child_pid>0 ? "positive":"ZERO or NEGATIVE");
+    ret = waitpid(child_pid, &status, 0);
+    printf("child process %s\n",
+           ret==child_pid ? "completed":"DID NOT complete");
+    printf("exit_code: %d\n",WEXITSTATUS(status));
+    suite_dealloc(&suite);
+}
+---OUTPUT---
+test state: TEST_RUNNING (1)
+child_pid is positive
+child process completed
+exit_code: 0
+#+END_SRC
+
+* suite_test_start2
+#+TESTY: program='./test_chester suite_test_start2'
+#+BEGIN_SRC sh
+IF_TEST("suite_test_start2") { 
+    // Checks whether starting a test sets the outfile_name, creates a
+    // child process to run the tested program, and that program
+    // output is redirected into outfile_name. The program has a
+    // command line parameter so as the child is about exec() a
+    // function like split_into_argv() must be used to split up the
+    // program line into an argv[] array.
+    suite_t suite = {
+      .testdir = strdup("test-results/testdirS2"),
+      .prefix = strdup("prefS2"),
+      .tests_count = 10,
+    };
+    suite_create_testdir(&suite);
+    test_t *test = &suite.tests[5];
+    test->program = strdup("seq 7");
+    ret = suite_test_start(&suite, 5);
+    test_state_t state = test->state;
+    printf("test state: %s (%d)\n",test_state_str(state),state);
+    if(ret != 0){ printf("Non-zero wait() return\n"); }
+    pid_t child_pid = test->child_pid;
+    printf("child_pid is %s\n",
+           child_pid>0 ? "positive":"ZERO or NEGATIVE");
+    ret = waitpid(child_pid, &status, 0);
+    printf("child process %s\n",
+           ret==child_pid ? "completed":"DID NOT complete");
+    printf("exit_code: %d\n",WEXITSTATUS(status));
+    printf("PROGRAM OUTPUT\n");
+    system("cat test-results/testdirS2/prefS2-output-05.txt");
+    suite_dealloc(&suite);
+}
+---OUTPUT---
+test state: TEST_RUNNING (1)
+child_pid is positive
+child process completed
+exit_code: 0
+PROGRAM OUTPUT
+1
+2
+3
+4
+5
+6
+7
+#+END_SRC
+
+* suite_test_start3
+#+TESTY: program='./test_chester suite_test_start3'
+#+BEGIN_SRC sh
+IF_TEST("suite_test_start3") { 
+    // Checks that both stdout and stderr streams are redirected when
+    // starting the child process. The test program prints messages to
+    // both stdout and stderr but they should appear in the designated
+    // output file as both streams are redirected into outfile_name.
+    suite_t suite = {
+      .testdir = strdup("test-results/testdirS3"),
+      .prefix = strdup("prefS3"),
+      .tests_count = 10,
+    };
+    suite_create_testdir(&suite);
+    test_t *test = &suite.tests[2];
+    test->program = strdup("bash data/print_stdout_stderr.sh");
+    ret = suite_test_start(&suite, 2);
+    test_state_t state = test->state;
+    printf("test state: %s (%d)\n",test_state_str(state),state);
+    if(ret != 0){ printf("Non-zero wait() return\n"); }
+    pid_t child_pid = test->child_pid;
+    printf("child_pid is %s\n",
+           child_pid>0 ? "positive":"ZERO or NEGATIVE");
+    ret = waitpid(child_pid, &status, 0);
+    printf("child process %s\n",
+           ret==child_pid ? "completed":"DID NOT complete");
+    printf("exit_code: %d\n",WEXITSTATUS(status));
+    printf("PROGRAM OUTPUT\n");
+    system("cat test-results/testdirS3/prefS3-output-02.txt");
+    suite_dealloc(&suite);
+}
+---OUTPUT---
+test state: TEST_RUNNING (1)
+child_pid is positive
+child process completed
+exit_code: 0
+PROGRAM OUTPUT
+1 First Message to stdout
+2 Second Message to stderr
+3 Third Message to stdout
+#+END_SRC
+
+* suite_test_start4
+#+TESTY: program='./test_chester suite_test_start4'
+#+BEGIN_SRC sh
+IF_TEST("suite_test_start4") { 
+    // Checks that a child process that returns a nonzero exit code is
+    // handled properly.
+    suite_t suite = {
+      .testdir = strdup("test-results/testdirS4"),
+      .prefix = strdup("prefS4"),
+      .tests_count = 10,
+    };
+    suite_create_testdir(&suite);
+    test_t *test = &suite.tests[0];
+    test->program = strdup("wc no-such-file.txt");
+    ret = suite_test_start(&suite, 0);
+    test_state_t state = test->state;
+    printf("test state: %s (%d)\n",test_state_str(state),state);
+    if(ret != 0){ printf("Non-zero wait() return\n"); }
+    pid_t child_pid = test->child_pid;
+    printf("child_pid is %s\n",
+           child_pid>0 ? "positive":"ZERO or NEGATIVE");
+    ret = waitpid(child_pid, &status, 0);
+    printf("child process %s\n",
+           ret==child_pid ? "completed":"DID NOT complete");
+    printf("exit_code: %d\n",WEXITSTATUS(status));
+    printf("PROGRAM OUTPUT\n");
+    system("cat test-results/testdirS4/prefS4-output-00.txt");
+    suite_dealloc(&suite);
+}
+---OUTPUT---
+test state: TEST_RUNNING (1)
+child_pid is positive
+child process completed
+exit_code: 1
+PROGRAM OUTPUT
+wc: no-such-file.txt: No such file or directory
+#+END_SRC
+
+* suite_test_start5
+#+TESTY: program='./test_chester suite_test_start5'
+#+BEGIN_SRC sh
+IF_TEST("suite_test_start5") { 
+    // Checks that input redirection is implemented
+    suite_t suite = {
+      .testdir = strdup("test-results/testdirS5"),
+      .prefix = strdup("prefS5"),
+      .tests_count = 10,
+    };
+    suite_create_testdir(&suite);
+    char *input =
+      "November 19, 1863\n"
+      "Abraham Lincoln\n"
+      "\n"
+      "all men are created equal.\n"
+      "in Liberty, and dedicated to the proposition that\n"
+      "forth on this continent, a new nation, conceived\n"
+      "Four score and seven years ago our fathers brought\n";
+    test_t *test = &suite.tests[0];
+    test->input = strdup(input);
+    test->program = strdup("tac"); // reverses line order
+    ret = suite_test_start(&suite, 0);
+    test_state_t state = test->state;
+    printf("test state: %s (%d)\n",test_state_str(state),state);
+    if(ret != 0){ printf("Non-zero wait() return\n"); }
+    pid_t child_pid = test->child_pid;
+    printf("child_pid is %s\n",
+           child_pid>0 ? "positive":"ZERO or NEGATIVE");
+    ret = waitpid(child_pid, &status, 0);
+    printf("child process %s\n",
+           ret==child_pid ? "completed":"DID NOT complete");
+    printf("exit_code: %d\n",WEXITSTATUS(status));
+    printf("PROGRAM OUTPUT\n");
+    system("cat test-results/testdirS5/prefS5-output-00.txt");
+    suite_dealloc(&suite);
+}
+---OUTPUT---
+test state: TEST_RUNNING (1)
+child_pid is positive
+child process completed
+exit_code: 0
+PROGRAM OUTPUT
+Four score and seven years ago our fathers brought
+forth on this continent, a new nation, conceived
+in Liberty, and dedicated to the proposition that
+all men are created equal.
+
+Abraham Lincoln
+November 19, 1863
+#+END_SRC
+
+* suite_test_finish1
+#+TESTY: program='./test_chester suite_test_finish1'
+#+BEGIN_SRC sh
+IF_TEST("suite_test_finish1") { 
+    // Checks that suite_test_finish() sets properties of the test and
+    // suite after the test is finished. This includes reading the
+    // output from the test from outfile_name and storing it in the
+    // output_actual field, setting the exit_code for the tests,
+    // setting the state to PASS / FAIL after comparing the expected
+    // vs actual output/exit_codes, and incrementing the suite's
+    // tests_passed if the test passes. This test has no output and
+    // passes.
+    suite_t suite = {
+      .testdir = strdup("test-results/testdirF1"),
+      .prefix = strdup("prefF1"),
+      .tests_count = 10,
+    };
+    suite_create_testdir(&suite);
+    test_t *test = &suite.tests[0];
+    test->program = strdup("true");
+    test->output_expect = strdup(""); // output should be empty
+    ret = suite_test_start(&suite, 0);
+    if(ret != 0){ printf("Non-zero wait() return\n"); }
+    pid_t child_pid = test->child_pid;
+    printf("child_pid is %s\n",
+           child_pid>0 ? "positive":"ZERO or NEGATIVE");
+    ret = waitpid(child_pid, &status, 0);
+    printf("child process %s\n",
+           ret==child_pid ? "completed":"DID NOT complete");
+    ret = suite_test_finish(&suite,0,status);
+    suite_test_print1(&suite, 0);
+    suite_dealloc(&suite);
+}
+---OUTPUT---
+child_pid is positive
+child process completed
+test->program: true
+test->input:
+---
+(null)---
+test->output_actual:
+---
+---
+test->output_expect:
+---
+---
+test->exit_code_expect: 0
+test->exit_code_actual: 0
+test->state: TEST_PASSED (2)
+suite->tests_passed: 1
+#+END_SRC
+
+* suite_test_finish2
+#+TESTY: program='./test_chester suite_test_finish2'
+#+BEGIN_SRC sh
+IF_TEST("suite_test_finish2") { 
+    // Checks that suite_test_finish() sets properties of the test and
+    // suite after the test is finished.This test has some output and
+    // passes as the output / exit_code match expected values.
+    suite_t suite = {
+      .testdir = strdup("test-results/testdirF2"),
+      .prefix = strdup("prefF2"),
+      .tests_count = 10,
+    };
+    suite_create_testdir(&suite);
+    test_t *test = &suite.tests[0];
+    test->program = strdup("seq 10 50 300");
+    char *output_expect =
+      "10\n"
+      "60\n"
+      "110\n"
+      "160\n"
+      "210\n"
+      "260\n";
+    test->output_expect = strdup(output_expect);
+    ret = suite_test_start(&suite, 0);
+    if(ret != 0){ printf("Non-zero wait() return\n"); }
+    pid_t child_pid = test->child_pid;
+    printf("child_pid is %s\n",
+           child_pid>0 ? "positive":"ZERO or NEGATIVE");
+    ret = waitpid(child_pid, &status, 0);
+    printf("child process %s\n",
+           ret==child_pid ? "completed":"DID NOT complete");
+    ret = suite_test_finish(&suite,0,status);
+    suite_test_print1(&suite, 0);
+    suite_dealloc(&suite);
+}
+---OUTPUT---
+child_pid is positive
+child process completed
+test->program: seq 10 50 300
+test->input:
+---
+(null)---
+test->output_actual:
+---
+10
+60
+110
+160
+210
+260
+---
+test->output_expect:
+---
+10
+60
+110
+160
+210
+260
+---
+test->exit_code_expect: 0
+test->exit_code_actual: 0
+test->state: TEST_PASSED (2)
+suite->tests_passed: 1
+#+END_SRC
+
+* suite_test_finish3
+#+TESTY: program='./test_chester suite_test_finish3'
+#+BEGIN_SRC sh
+IF_TEST("suite_test_finish3") { 
+    // Checks that suite_test_finish() sets properties of the test and
+    // suite after the test is finished. This test FAILS as the
+    // expected and actual output do not match. The EXPECTED output is
+    // intentionally wrong to create this situation. The test result should
+    // be TEST_FAILED and the tests_passed should NOT increment.
+    suite_t suite = {
+      .testdir = strdup("test-results/testdirF3"),
+      .prefix = strdup("prefF3"),
+      .tests_count = 10,
+    };
+    suite_create_testdir(&suite);
+    test_t *test = &suite.tests[0];
+    test->program = strdup("seq 10 20");
+    char *output_expect =
+      "21\n"
+      "22\n"
+      "23\n"
+      "Intentionally wrong\n";
+    test->output_expect = strdup(output_expect);
+    ret = suite_test_start(&suite, 0);
+    if(ret != 0){ printf("Non-zero wait() return\n"); }
+    pid_t child_pid = test->child_pid;
+    printf("child_pid is %s\n",
+           child_pid>0 ? "positive":"ZERO or NEGATIVE");
+    ret = waitpid(child_pid, &status, 0);
+    printf("child process %s\n",
+           ret==child_pid ? "completed":"DID NOT complete");
+    ret = suite_test_finish(&suite,0,status);
+    suite_test_print1(&suite, 0);
+    suite_dealloc(&suite);
+}
+---OUTPUT---
+child_pid is positive
+child process completed
+test->program: seq 10 20
+test->input:
+---
+(null)---
+test->output_actual:
+---
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+---
+test->output_expect:
+---
+21
+22
+23
+Intentionally wrong
+---
+test->exit_code_expect: 0
+test->exit_code_actual: 0
+test->state: TEST_FAILED (3)
+suite->tests_passed: 0
+#+END_SRC
+
+* suite_test_finish4
+#+TESTY: program='./test_chester suite_test_finish4'
+#+BEGIN_SRC sh
+IF_TEST("suite_test_finish4") { 
+    // Checks that suite_test_finish() sets properties of the test and
+    // suite after the test is finished. The test that runs in this
+    // case experiences a segmentation fault which should be
+    // identified and reported via negative exit_code_actual (-11 in
+    // this case). This should cause the test to fail. The expected
+    // and actual output will match BUT the expected exit code is 0
+    // and this should cause the test to fail.
+    suite_t suite = {
+      .testdir = strdup("test-results/testdirF4"),
+      .prefix = strdup("prefF4"),
+      .tests_count = 10,
+    };
+    suite_create_testdir(&suite);
+    test_t *test = &suite.tests[0];
+    test->program = strdup("bash data/raise_sigsegv.sh");
+    char *output_expect =
+      "This script raises a SIGSEGV\n"
+      "About the raise the signal which\n"
+      "should end the program\n";
+    test->output_expect = strdup(output_expect);
+    test->exit_code_expect = 0;  // will not match causing FAIL
+    ret = suite_test_start(&suite, 0);
+    if(ret != 0){ printf("Non-zero wait() return\n"); }
+    pid_t child_pid = test->child_pid;
+    printf("child_pid is %s\n",
+           child_pid>0 ? "positive":"ZERO or NEGATIVE");
+    ret = waitpid(child_pid, &status, 0);
+    printf("child process %s\n",
+           ret==child_pid ? "completed":"DID NOT complete");
+    ret = suite_test_finish(&suite,0,status);
+    suite_test_print1(&suite, 0);
+    suite_dealloc(&suite);
+}
+---OUTPUT---
+child_pid is positive
+child process completed
+test->program: bash data/raise_sigsegv.sh
+test->input:
+---
+(null)---
+test->output_actual:
+---
+This script raises a SIGSEGV
+About the raise the signal which
+should end the program
+---
+test->output_expect:
+---
+This script raises a SIGSEGV
+About the raise the signal which
+should end the program
+---
+test->exit_code_expect: 0
+test->exit_code_actual: -11
+test->state: TEST_FAILED (3)
+suite->tests_passed: 0
+#+END_SRC
+
+* suite_test_finish5
+#+TESTY: program='./test_chester suite_test_finish5'
+#+BEGIN_SRC sh
+IF_TEST("suite_test_finish5") { 
+    // Checks that suite_test_finish() sets properties of the test and
+    // suite after the test is finished. This test expects input so
+    // must have proper stdin redirection and ends via a signal but
+    // this is expected. The test should PASS as the expected output
+    // will match and the -15 (SIGTERM) is also expected.
+    suite_t suite = {
+      .testdir = strdup("test-results/testdirF5"),
+      .prefix = strdup("prefF5"),
+      .tests_count = 10,
+    };
+    suite_create_testdir(&suite);
+    test_t *test = &suite.tests[0];
+    test->program = strdup("bash data/count_terminate.sh apateu");
+    char *input = 
+      "Apateu, apateu\n"
+      "Apateu, apateu\n"
+      "Apateu, apateu\n"
+      "Uh, uh-huh, uh-huh\n"
+      "Apateu, apateu\n"
+      "Apateu, apateu\n"
+      "Apateu, apateu\n"
+      "Uh, uh-huh, uh-huh\n";
+    test->input = strdup(input);
+    char *output_expect =
+      "The word 'apateu' appeared on 6 lines\n"
+      "Terminating now\n";
+    test->output_expect = strdup(output_expect);
+    test->exit_code_expect = -15;  // signal expected 
+    ret = suite_test_start(&suite, 0);
+    if(ret != 0){ printf("Non-zero wait() return\n"); }
+    pid_t child_pid = test->child_pid;
+    printf("child_pid is %s\n",
+           child_pid>0 ? "positive":"ZERO or NEGATIVE");
+    ret = waitpid(child_pid, &status, 0);
+    printf("child process %s\n",
+           ret==child_pid ? "completed":"DID NOT complete");
+    ret = suite_test_finish(&suite,0,status);
+    suite_test_print1(&suite, 0);
+    suite_dealloc(&suite);
+}
+---OUTPUT---
+child_pid is positive
+child process completed
+test->program: bash data/count_terminate.sh apateu
+test->input:
+---
+Apateu, apateu
+Apateu, apateu
+Apateu, apateu
+Uh, uh-huh, uh-huh
+Apateu, apateu
+Apateu, apateu
+Apateu, apateu
+Uh, uh-huh, uh-huh
+---
+test->output_actual:
+---
+The word 'apateu' appeared on 6 lines
+Terminating now
+---
+test->output_expect:
+---
+The word 'apateu' appeared on 6 lines
+Terminating now
+---
+test->exit_code_expect: -15
+test->exit_code_actual: -15
+test->state: TEST_PASSED (2)
+suite->tests_passed: 1
+#+END_SRC
+
+* suite_test_finish6
+#+TESTY: program='./test_chester suite_test_finish6'
+#+BEGIN_SRC sh
+IF_TEST("suite_test_finish6") { 
+    // Checks that suite_test_finish() sets properties of the test and
+    // suite after the test is finished. The test run requires special
+    // handling to set up its argv[] array as there is quoting
+    // involved. This is best handled via the provided
+    // split_into_argv() function. The program returns a non-zero exit
+    // code which is expected so that the test should still PASS.
+    suite_t suite = {
+      .testdir = strdup("test-results/testdirF6"),
+      .prefix = strdup("prefF6"),
+      .tests_count = 10,
+    };
+    suite_create_testdir(&suite);
+    test_t *test = &suite.tests[0];
+    test->program = strdup("bash -c 'echo Hello world && exit 5'");
+    char *output_expect =
+      "Hello world\n";
+    test->output_expect = strdup(output_expect);
+    test->exit_code_expect = 5;
+    ret = suite_test_start(&suite, 0);
+    if(ret != 0){ printf("Non-zero wait() return\n"); }
+    pid_t child_pid = test->child_pid;
+    printf("child_pid is %s\n",
+           child_pid>0 ? "positive":"ZERO or NEGATIVE");
+    ret = waitpid(child_pid, &status, 0);
+    printf("child process %s\n",
+           ret==child_pid ? "completed":"DID NOT complete");
+    ret = suite_test_finish(&suite,0,status);
+    suite_test_print1(&suite, 0);
+    suite_dealloc(&suite);
+}
+---OUTPUT---
+child_pid is positive
+child process completed
+test->program: bash -c 'echo Hello world && exit 5'
+test->input:
+---
+(null)---
+test->output_actual:
+---
+Hello world
+---
+test->output_expect:
+---
+Hello world
+---
+test->exit_code_expect: 5
+test->exit_code_actual: 5
+test->state: TEST_PASSED (2)
+suite->tests_passed: 1
+#+END_SRC
+
+* suite_test_finish7
+#+TESTY: program='./test_chester suite_test_finish7'
+#+BEGIN_SRC sh
+IF_TEST("suite_test_finish7") { 
+    // Checks that suite_test_finish() sets properties of the test and
+    // suite after the test is finished. Checks the special case where
+    // the test's output_expect is NULL so that checking output should
+    // be skipped; the test should PASS. Ensures that the
+    // suite_test_finish() function does not access a NULL during its
+    // checks for pass/fail.
+    suite_t suite = {
+      .testdir = strdup("test-results/testdirF7"),
+      .prefix = strdup("prefF7"),
+      .tests_count = 10,
+    };
+    suite_create_testdir(&suite);
+    test_t *test = &suite.tests[0];
+    test->program = strdup("seq 9");
+    test->output_expect = NULL; // skip output check
+    test->exit_code_expect = 0;
+    ret = suite_test_start(&suite, 0);
+    if(ret != 0){ printf("Non-zero wait() return\n"); }
+    pid_t child_pid = test->child_pid;
+    printf("child_pid is %s\n",
+           child_pid>0 ? "positive":"ZERO or NEGATIVE");
+    ret = waitpid(child_pid, &status, 0);
+    printf("child process %s\n",
+           ret==child_pid ? "completed":"DID NOT complete");
+    ret = suite_test_finish(&suite,0,status);
+    suite_test_print1(&suite, 0);
+    suite_dealloc(&suite);
+}
+---OUTPUT---
+child_pid is positive
+child process completed
+test->program: seq 9
+test->input:
+---
+(null)---
+test->output_actual:
+---
+1
+2
+3
+4
+5
+6
+7
+8
+9
+---
+test->output_expect:
+---
+(null)---
+test->exit_code_expect: 0
+test->exit_code_actual: 0
+test->state: TEST_PASSED (2)
+suite->tests_passed: 1
+#+END_SRC
+
+* suite_test_finish8
+#+TESTY: program='./test_chester suite_test_finish8'
+#+BEGIN_SRC sh
+IF_TEST("suite_test_finish8") { 
+    // Checks that suite_test_finish() sets properties of the test and
+    // suite after the test is finished. Requires input redirection to
+    // work properly and that the expected exit_code be honored. The
+    // test should PASS as the expected exit_code and output should
+    // match.
+    suite_t suite = {
+      .testdir = strdup("test-results/testdirF8"),
+      .prefix = strdup("prefF8"),
+      .tests_count = 10,
+    };
+    suite_create_testdir(&suite);
+    test_t *test = &suite.tests[0];
+    test->program = strdup("bash");
+    char *input =
+      "echo First line\n"
+      "echo Second line\n"
+      "seq 200|wc\n"
+      "echo Done\n"
+      "exit 3\n";
+    test->input = strdup(input);
+    char *output_expect =
+      "First line\n"
+      "Second line\n"
+      "    200     200     692\n"
+      "Done\n";
+    test->output_expect = strdup(output_expect);
+    test->exit_code_expect = 3;
+    ret = suite_test_start(&suite, 0);
+    if(ret != 0){ printf("Non-zero wait() return\n"); }
+    pid_t child_pid = test->child_pid;
+    printf("child_pid is %s\n",
+           child_pid>0 ? "positive":"ZERO or NEGATIVE");
+    ret = waitpid(child_pid, &status, 0);
+    printf("child process %s\n",
+           ret==child_pid ? "completed":"DID NOT complete");
+    ret = suite_test_finish(&suite,0,status);
+    suite_test_print1(&suite, 0);
+    suite_dealloc(&suite);
+}
+---OUTPUT---
+child_pid is positive
+child process completed
+test->program: bash
+test->input:
+---
+echo First line
+echo Second line
+seq 200|wc
+echo Done
+exit 3
+---
+test->output_actual:
+---
+First line
+Second line
+    200     200     692
+Done
+---
+test->output_expect:
+---
+First line
+Second line
+    200     200     692
+Done
+---
+test->exit_code_expect: 3
+test->exit_code_actual: 3
+test->state: TEST_PASSED (2)
+suite->tests_passed: 1
+#+END_SRC
+
+* suite_test_finish9
+#+TESTY: program='./test_chester suite_test_finish9'
+#+BEGIN_SRC sh
+IF_TEST("suite_test_finish9") { 
+    // Checks that suite_test_finish() sets properties of the test and
+    // suite after the test is finished. Requires input redirection to
+    // work properly and that the expected exit_code be honored which
+    // is a signal in this case.  The test should PASS as the expected
+    // exit_code and output should match.
+    suite_t suite = {
+      .testdir = strdup("test-results/testdirF9"),
+      .prefix = strdup("prefF9"),
+      .tests_count = 10,
+    };
+    suite_create_testdir(&suite);
+    test_t *test = &suite.tests[0];
+    test->program = strdup("bash");
+    char *input =
+      "printf 'Kissy face, kissy face\\nSent to your phone\\n'\n"
+      "seq 50|grep 7\n"
+      "echo About to interrupt\n"
+      "kill -SIGINT $$\n"
+      "echo How did this happen\n";
+    test->input = strdup(input);
+    char *output_expect =
+      "Done\n";
+    test->output_expect = strdup(output_expect);
+    test->exit_code_expect = -2;
+    ret = suite_test_start(&suite, 0);
+    if(ret != 0){ printf("Non-zero wait() return\n"); }
+    pid_t child_pid = test->child_pid;
+    printf("child_pid is %s\n",
+           child_pid>0 ? "positive":"ZERO or NEGATIVE");
+    ret = waitpid(child_pid, &status, 0);
+    printf("child process %s\n",
+           ret==child_pid ? "completed":"DID NOT complete");
+    ret = suite_test_finish(&suite,0,status);
+    suite_test_print1(&suite, 0);
+    suite_dealloc(&suite);
+}
+---OUTPUT---
+child_pid is positive
+child process completed
+test->program: bash
+test->input:
+---
+printf 'Kissy face, kissy face\nSent to your phone\n'
+seq 50|grep 7
+echo About to interrupt
+kill -SIGINT $$
+echo How did this happen
+---
+test->output_actual:
+---
+Kissy face, kissy face
+Sent to your phone
+7
+17
+27
+37
+47
+About to interrupt
+---
+test->output_expect:
+---
+Done
+---
+test->exit_code_expect: -2
+test->exit_code_actual: -2
+test->state: TEST_FAILED (3)
+suite->tests_passed: 0
+#+END_SRC
+
+* suite_test_start_finish_err
+#+TESTY: program='./test_chester suite_test_start_finish_err'
+#+BEGIN_SRC sh
+IF_TEST("suite_test_start_finish_err") { 
+    // Checks two erorr cases for suite_test_start().  If the output
+    // file canto be created during test startup, the child process
+    // should print an error and exit with the TESTFAIL_OUTPUT
+    // exit_code.  The error message will appear outside of any test
+    // output as output has not be redirected.
+    //
+    // If the exec() fails, the child process should similarly print
+    // an error and exit with code TESTFAILE_EXEC. This error message
+    // will appear in output_actual as output redirection will have
+    // occurred at that point.
+    //
+    // These the error exit codes will be viewable in the test
+    // exit_code_actual as numeric values. These are defined in the
+    // chester.h header file.
+    suite_t suite = {
+      .testdir = strdup("test-results/testdirF10"),
+      .prefix = strdup("prefF10"),
+      .tests_count = 10,
+    };
+    suite_create_testdir(&suite);
+
+    printf("\nERROR CASE 1: CANNOT CREATE TEST OUTPUT FILE\n");
+    test_t *test = &suite.tests[0];
+    test->program = strdup("wc");
+    char *input =
+      "Katz: All your bass are belong to us\n";
+    test->input = strdup(input);
+    // ensure that the output file cannot be created by linking it to a
+    // file that users do not have permission to acces
+    system("rm -rf test-results/testdirF10/prefF10-output-00.txt");
+    system("ln -s /no-such-file.txt test-results/testdirF10/prefF10-output-00.txt");
+    test->output_expect = NULL;
+    test->exit_code_expect = 0;
+    // NOTE: concurrency is tricky here as error messages from the
+    // child may appear early or late; wait() first in order to ensure
+    // that any child error messages appear first then check return
+    // values. 
+    int start_ret = suite_test_start(&suite, 0);
+    pid_t child_pid = test->child_pid;
+    int wait_ret = waitpid(child_pid, &status, 0);
+    ret = suite_test_finish(&suite,0,status);
+    if(start_ret != 0){ printf("Non-zero wait() return\n"); }
+    printf("child_pid is %s\n",
+           child_pid>0 ? "positive":"ZERO or NEGATIVE");
+    printf("child process %s\n",
+           wait_ret==child_pid ? "completed":"DID NOT complete");
+    suite_test_print1(&suite, 0);
+    system("rm -rf test-results/testdirF10/prefF10-output-00.txt");
+
+    printf("\nERROR CASE 2: CANNOT EXEC TEST PROGRAM\n");
+    test = &suite.tests[1];
+    test->program = strdup("no_such_program");
+    test->input = NULL;
+    test->output_expect = NULL;
+    test->exit_code_expect = 0;
+    ret = suite_test_start(&suite, 1);
+    if(ret != 0){ printf("Non-zero wait() return\n"); }
+    child_pid = test->child_pid;
+    printf("child_pid is %s\n",
+           child_pid>0 ? "positive":"ZERO or NEGATIVE");
+    ret = waitpid(child_pid, &status, 0);
+    printf("child process %s\n",
+           ret==child_pid ? "completed":"DID NOT complete");
+    ret = suite_test_finish(&suite,1,status);
+    suite_test_print1(&suite, 1);
+
+    suite_dealloc(&suite);
+}
+---OUTPUT---
+
+ERROR CASE 1: CANNOT CREATE TEST OUTPUT FILE
+Couldn't open file: No such file or directory
+child_pid is positive
+child process completed
+test->program: wc
+test->input:
+---
+Katz: All your bass are belong to us
+---
+test->output_actual:
+---
+(null)---
+test->output_expect:
+---
+(null)---
+test->exit_code_expect: 0
+test->exit_code_actual: 21
+test->state: TEST_FAILED (3)
+suite->tests_passed: 0
+
+ERROR CASE 2: CANNOT EXEC TEST PROGRAM
+child_pid is positive
+child process completed
+test->program: no_such_program
+test->input:
+---
+(null)---
+test->output_actual:
+---
+ERROR: test program failed to exec: No such file or directory
+---
+test->output_expect:
+---
+(null)---
+test->exit_code_expect: 0
+test->exit_code_actual: 22
+test->state: TEST_FAILED (3)
+suite->tests_passed: 0
+#+END_SRC
+

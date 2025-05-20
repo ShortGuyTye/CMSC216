@@ -1,0 +1,1545 @@
+#+TITLE: Problem 5 Chester Main
+#+TESTY: prefix="prob5"
+#+TESTY: use_valgrind=1
+# disable memory leak detection in forked children
+#+TESTY: valgrind_opts="--child-silent-after-fork=yes"
+
+# UPDATED: Thu Nov 14 05:20:52 PM EST 2024
+
+* main1
+** Run Chester
+#+TESTY: program='./chester data/four_tests.md'
+#+BEGIN_SRC sh
+data/four_tests.md : running 4 / 4 tests
+Running with single process: .... Done
+ 0) seq check            : ok
+ 1) wc 1 to 10           : FAIL -> see chester-test/four-tests-result-01.md
+ 2) bash with output     : ok
+ 3) tail with input      : FAIL -> see chester-test/four-tests-result-03.md
+Overall: 2 / 4 tests passed
+#+END_SRC
+
+** Check Output Files
+#+TESTY: program='bash -v'
+#+TESTY: use_valgrind=0
+
+#+BEGIN_SRC sh
+>> ls chester-test/four-tests*
+chester-test/four-tests-input-01.txt
+chester-test/four-tests-input-03.txt
+chester-test/four-tests-output-00.txt
+chester-test/four-tests-output-01.txt
+chester-test/four-tests-output-02.txt
+chester-test/four-tests-output-03.txt
+chester-test/four-tests-result-00.md
+chester-test/four-tests-result-01.md
+chester-test/four-tests-result-02.md
+chester-test/four-tests-result-03.md
+>> head -n 50 chester-test/four-tests*
+==> chester-test/four-tests-input-01.txt <==
+1
+2
+3
+4
+
+6
+7
+8
+9
+10
+
+==> chester-test/four-tests-input-03.txt <==
+Now we are engaged in a great civil war, testing
+whether that nation, or any nation so conceived
+and so dedicated, can long endure. We are met on a
+great battle-field of that war. We have come to
+dedicate a portion of that field, as a final
+resting place for those who here gave their lives
+that that nation might live. It is altogether
+fitting and proper that we should do this.
+
+==> chester-test/four-tests-output-00.txt <==
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+
+==> chester-test/four-tests-output-01.txt <==
+10  9 20
+
+==> chester-test/four-tests-output-02.txt <==
+Hello world
+More output
+All done now
+
+==> chester-test/four-tests-output-03.txt <==
+great battle-field of that war. We have come to
+dedicate a portion of that field, as a final
+resting place for those who here gave their lives
+that that nation might live. It is altogether
+fitting and proper that we should do this.
+
+==> chester-test/four-tests-result-00.md <==
+# TEST 0: seq check (ok)
+## DESCRIPTION
+Checks whether sequence program executes
+
+## PROGRAM: seq 10
+
+## INPUT: None
+
+## OUTPUT: ok
+
+## EXIT CODE: ok
+
+## RESULT: ok
+
+==> chester-test/four-tests-result-01.md <==
+# TEST 1: wc 1 to 10 (FAIL)
+## DESCRIPTION
+Checks that wc works with input; should fail as the input is slightly
+mangled.
+
+## PROGRAM: wc
+
+## INPUT:
+1
+2
+3
+4
+
+6
+7
+8
+9
+10
+
+## OUTPUT: MISMATCH at char position 3
+### Expect
+10 10 21
+
+### Actual
+10  9 20
+
+
+## EXIT CODE: ok
+
+## RESULT: FAIL
+
+==> chester-test/four-tests-result-02.md <==
+# TEST 2: bash with output (ok)
+## DESCRIPTION
+Checks whether bash produces output that is correct. The test should
+pass.
+
+## PROGRAM: bash -c 'echo Hello world; echo More output; echo All done now;'
+
+## INPUT: None
+
+## OUTPUT: ok
+
+## EXIT CODE: ok
+
+## RESULT: ok
+
+==> chester-test/four-tests-result-03.md <==
+# TEST 3: tail with input (FAIL)
+## DESCRIPTION
+Checks that the tail command works for given input. The expected
+output and the exit code are both wrong so the test should fail.
+
+## PROGRAM: tail -n 5
+
+## INPUT:
+Now we are engaged in a great civil war, testing
+whether that nation, or any nation so conceived
+and so dedicated, can long endure. We are met on a
+great battle-field of that war. We have come to
+dedicate a portion of that field, as a final
+resting place for those who here gave their lives
+that that nation might live. It is altogether
+fitting and proper that we should do this.
+
+## OUTPUT: MISMATCH at char position 101
+### Expect
+rtion of that field, as a final
+resting PLACE FOR those who here gave their lives
+### Actual
+rtion of that field, as a final
+resting place for those who here gave their lives
+
+## EXIT CODE: MISMATCH
+- Expect: 3
+- Actual: 0
+
+## RESULT: FAIL
+#+END_SRC
+
+* main2
+Checks that running the data/special_cases.md suite produces correct
+output, correct tests passed, and the correct files in the test
+directory.  The test directory is specified as chester-test-special
+and all 9 tests in the suite are run
+
+** Run Chester
+#+TESTY: program='./chester data/special_cases.md'
+#+BEGIN_SRC sh
+data/special_cases.md : running 9 / 9 tests
+Running with single process: ......... Done
+ 0) Segfault Test A      : FAIL -> see chester-test-special/special-cases-result-00.md
+ 1) Segfault Test B      : ok
+ 2) Error Redirect       : ok
+ 3) Empty Input          : ok
+ 4) Term Signal A        : FAIL -> see chester-test-special/special-cases-result-04.md
+ 5) Term Signal B        : FAIL -> see chester-test-special/special-cases-result-05.md
+ 6) Term Signal C        : ok
+ 7) Ignore Output        : ok
+ 8) Empty Description    : ok
+Overall: 6 / 9 tests passed
+#+END_SRC
+
+** Check Output Files
+#+TESTY: program='bash -v'
+#+TESTY: use_valgrind=0
+#+BEGIN_SRC sh
+>> rm chester-test-special/special-cases-output-07.txt # random output
+
+>> ls chester-test-special/special-cases*
+chester-test-special/special-cases-input-03.txt
+chester-test-special/special-cases-input-04.txt
+chester-test-special/special-cases-input-05.txt
+chester-test-special/special-cases-input-06.txt
+chester-test-special/special-cases-output-00.txt
+chester-test-special/special-cases-output-01.txt
+chester-test-special/special-cases-output-02.txt
+chester-test-special/special-cases-output-03.txt
+chester-test-special/special-cases-output-04.txt
+chester-test-special/special-cases-output-05.txt
+chester-test-special/special-cases-output-06.txt
+chester-test-special/special-cases-output-08.txt
+chester-test-special/special-cases-result-00.md
+chester-test-special/special-cases-result-01.md
+chester-test-special/special-cases-result-02.md
+chester-test-special/special-cases-result-03.md
+chester-test-special/special-cases-result-04.md
+chester-test-special/special-cases-result-05.md
+chester-test-special/special-cases-result-06.md
+chester-test-special/special-cases-result-07.md
+chester-test-special/special-cases-result-08.md
+
+>> head -n 50 chester-test-special/special-cases*
+==> chester-test-special/special-cases-input-03.txt <==
+
+==> chester-test-special/special-cases-input-04.txt <==
+All work and no play makes Jack a dull boy.
+All work and no Play makes Jack a dull boy.
+All work and no pLay makes Jack a dull boy.
+All work and no pLaY makes Jack a dull boy.
+All work and no PLAY makes Jack a dull boy.
+All work and no PlAy makes Jack a dull boy.
+
+==> chester-test-special/special-cases-input-05.txt <==
+All work and no play makes Jack a dull boy.
+All work and no Play makes Jack a dull boy.
+All work and no pLay makes Jack a dull boy.
+All work and no pLaY makes Jack a dull boy.
+All work and no PLAY makes Jack a dull boy.
+All work and no PlAy makes Jack a dull boy.
+
+==> chester-test-special/special-cases-input-06.txt <==
+All work and no play makes Jack a dull boy.
+All work and no Play makes Jack a dull boy.
+All work and no pLay makes Jack a dull boy.
+All work and no pLaY makes Jack a dull boy.
+All work and no PLAY makes Jack a dull boy.
+All work and no PlAy makes Jack a dull boy.
+
+==> chester-test-special/special-cases-output-00.txt <==
+This script raises a SIGSEGV
+About the raise the signal which
+should end the program
+
+==> chester-test-special/special-cases-output-01.txt <==
+This script raises a SIGSEGV
+About the raise the signal which
+should end the program
+
+==> chester-test-special/special-cases-output-02.txt <==
+1 First Message to stdout
+2 Second Message to stderr
+3 Third Message to stdout
+
+==> chester-test-special/special-cases-output-03.txt <==
+0 0 0
+
+==> chester-test-special/special-cases-output-04.txt <==
+The word 'play' appeared on 6 lines
+Terminating now
+
+==> chester-test-special/special-cases-output-05.txt <==
+The word 'play' appeared on 6 lines
+Terminating now
+
+==> chester-test-special/special-cases-output-06.txt <==
+The word 'play' appeared on 6 lines
+Terminating now
+
+==> chester-test-special/special-cases-output-08.txt <==
+4
+6
+8
+10
+12
+
+==> chester-test-special/special-cases-result-00.md <==
+# TEST 0: Segfault Test A (FAIL)
+## DESCRIPTION
+Checks that the data/raise_sigsegv.sh program runs and the return code
+is properly handled. The test should fail.
+
+## PROGRAM: bash data/raise_sigsegv.sh
+
+## INPUT: None
+
+## OUTPUT: ok
+
+## EXIT CODE: MISMATCH
+- Expect: 0
+- Actual: -11
+
+## RESULT: FAIL
+
+==> chester-test-special/special-cases-result-01.md <==
+# TEST 1: Segfault Test B (ok)
+## DESCRIPTION
+Like previous test but sets exit code expectation to the segfault signal.
+
+## PROGRAM: bash data/raise_sigsegv.sh
+
+## INPUT: None
+
+## OUTPUT: ok
+
+## EXIT CODE: ok
+
+## RESULT: ok
+
+==> chester-test-special/special-cases-result-02.md <==
+# TEST 2: Error Redirect (ok)
+## DESCRIPTION
+Uses data/print_stdout_stderr.sh to produce output on both stdout and
+stderr to make sure tests redirect both to the results file.
+
+## PROGRAM: bash data/print_stdout_stderr.sh
+
+## INPUT: None
+
+## OUTPUT: ok
+
+## EXIT CODE: ok
+
+## RESULT: ok
+
+==> chester-test-special/special-cases-result-03.md <==
+# TEST 3: Empty Input (ok)
+## DESCRIPTION
+Sends empty input to a program.
+
+## PROGRAM: wc
+
+## INPUT:
+
+## OUTPUT: skipped check
+
+## EXIT CODE: ok
+
+## RESULT: ok
+
+==> chester-test-special/special-cases-result-04.md <==
+# TEST 4: Term Signal A (FAIL)
+## DESCRIPTION
+Checks that term signal is handled properly. Test fails as output and
+exit_cod do not match expected.
+
+## PROGRAM: bash data/count_terminate.sh play
+
+## INPUT:
+All work and no play makes Jack a dull boy.
+All work and no Play makes Jack a dull boy.
+All work and no pLay makes Jack a dull boy.
+All work and no pLaY makes Jack a dull boy.
+All work and no PLAY makes Jack a dull boy.
+All work and no PlAy makes Jack a dull boy.
+
+## OUTPUT: MISMATCH at char position 1
+### Expect
+Terminating now
+
+### Actual
+The word 'play' appeared on 6 lines
+Termin
+
+## EXIT CODE: MISMATCH
+- Expect: 0
+- Actual: -15
+
+## RESULT: FAIL
+
+==> chester-test-special/special-cases-result-05.md <==
+# TEST 5: Term Signal B (FAIL)
+## DESCRIPTION
+Checks that term signal is handled properly. Test passes due to exit
+code not matching expectation.
+
+## PROGRAM: bash data/count_terminate.sh play
+
+## INPUT:
+All work and no play makes Jack a dull boy.
+All work and no Play makes Jack a dull boy.
+All work and no pLay makes Jack a dull boy.
+All work and no pLaY makes Jack a dull boy.
+All work and no PLAY makes Jack a dull boy.
+All work and no PlAy makes Jack a dull boy.
+
+## OUTPUT: ok
+
+## EXIT CODE: MISMATCH
+- Expect: 0
+- Actual: -15
+
+## RESULT: FAIL
+
+==> chester-test-special/special-cases-result-06.md <==
+# TEST 6: Term Signal C (ok)
+## DESCRIPTION
+Checks that term signal is handled properly. Test passes due to
+expected values being met.
+
+## PROGRAM: bash data/count_terminate.sh play
+
+## INPUT:
+All work and no play makes Jack a dull boy.
+All work and no Play makes Jack a dull boy.
+All work and no pLay makes Jack a dull boy.
+All work and no pLaY makes Jack a dull boy.
+All work and no PLAY makes Jack a dull boy.
+All work and no PlAy makes Jack a dull boy.
+
+## OUTPUT: ok
+
+## EXIT CODE: ok
+
+## RESULT: ok
+
+==> chester-test-special/special-cases-result-07.md <==
+# TEST 7: Ignore Output (ok)
+## DESCRIPTION
+Runs a command with unpredictable output but that output should be
+ignored as no expected output is provided leading the test to pass.
+
+## PROGRAM: bash -c 'echo $RANDOM'
+
+## INPUT: None
+
+## OUTPUT: skipped check
+
+## EXIT CODE: ok
+
+## RESULT: ok
+
+==> chester-test-special/special-cases-result-08.md <==
+# TEST 8: Empty Description (ok)
+## DESCRIPTION
+
+## PROGRAM: seq 4 2 12
+
+## INPUT: None
+
+## OUTPUT: ok
+
+## EXIT CODE: ok
+
+## RESULT: ok
+#+END_SRC
+
+* main3
+Runs the data/seq_tests.md suite but uses command line arguments to
+dictate that only 4 of the 7 tests are run. Determines if the main
+command line program correctly handles specifying tests to run on the
+command line.
+
+** Run Chester
+#+TESTY: program='./chester data/seq_tests.md 2 3 5 6'
+#+BEGIN_SRC sh
+data/seq_tests.md : running 4 / 7 tests
+Running with single process: .... Done
+ 2) seq 8 -1 0           : FAIL -> see chester-test-seq/seq-result-02.md
+ 3) seq 5000 1000 9000   : FAIL -> see chester-test-seq/seq-result-03.md
+ 5) seq -s ' ' 10 2 20   : ok
+ 6) seq -s ' ' 10 -1 1   : FAIL -> see chester-test-seq/seq-result-06.md
+Overall: 1 / 4 tests passed
+#+END_SRC
+
+** Check Output Files
+#+TESTY: program='bash -v'
+#+TESTY: use_valgrind=0
+#+BEGIN_SRC sh
+>> ls chester-test-seq/seq*
+chester-test-seq/seq-output-02.txt
+chester-test-seq/seq-output-03.txt
+chester-test-seq/seq-output-05.txt
+chester-test-seq/seq-output-06.txt
+chester-test-seq/seq-result-02.md
+chester-test-seq/seq-result-03.md
+chester-test-seq/seq-result-05.md
+chester-test-seq/seq-result-06.md
+
+>> head -n 50 chester-test-seq/seq*
+==> chester-test-seq/seq-output-02.txt <==
+5
+10
+15
+20
+25
+30
+35
+40
+45
+50
+
+==> chester-test-seq/seq-output-03.txt <==
+5000
+6000
+7000
+8000
+9000
+
+==> chester-test-seq/seq-output-05.txt <==
+10 12 14 16 18 20
+
+==> chester-test-seq/seq-output-06.txt <==
+10 9 8 7 6 5 4 3 2 1
+
+==> chester-test-seq/seq-result-02.md <==
+# TEST 2: seq 8 -1 0 (FAIL)
+## DESCRIPTION
+Checks whether sequence program executes
+Should fail.
+
+## PROGRAM: seq 5 5 50
+
+## INPUT: None
+
+## OUTPUT: MISMATCH at char position 0
+### Expect
+8
+7
+6
+5
+4
+3
+2
+1
+
+
+### Actual
+5
+10
+15
+20
+25
+30
+35
+40
+45
+50
+
+
+## EXIT CODE: ok
+
+## RESULT: FAIL
+
+==> chester-test-seq/seq-result-03.md <==
+# TEST 3: seq 5000 1000 9000 (FAIL)
+## DESCRIPTION
+Checks whether sequence program executes
+Should fail
+
+## PROGRAM: seq 5000 1000 9000
+
+## INPUT: None
+
+## OUTPUT: MISMATCH at char position 25
+### Expect
+5000
+6000
+7000
+8000
+9000
+10000
+
+### Actual
+5000
+6000
+7000
+8000
+9000
+
+
+## EXIT CODE: ok
+
+## RESULT: FAIL
+
+==> chester-test-seq/seq-result-05.md <==
+# TEST 5: seq -s ' ' 10 2 20 (ok)
+## DESCRIPTION
+Checks whether sequence program executes
+
+## PROGRAM: seq -s ' ' 10 2 20
+
+## INPUT: None
+
+## OUTPUT: ok
+
+## EXIT CODE: ok
+
+## RESULT: ok
+
+==> chester-test-seq/seq-result-06.md <==
+# TEST 6: seq -s ' ' 10 -1 1 (FAIL)
+## DESCRIPTION
+Checks whether sequence program executes
+Should fail
+
+## PROGRAM: seq -s ' ' 10 -1 1
+
+## INPUT: None
+
+## OUTPUT: ok
+
+## EXIT CODE: MISMATCH
+- Expect: -3
+- Actual: 0
+
+## RESULT: FAIL
+#+END_SRC
+
+* main4
+Runs the data/shell_tests.md suite repeatedly to ensure that the
+behavior is as expected.
+
+** Chester Run All Tests
+#+TESTY: program='./chester data/big_tests.md'
+#+BEGIN_SRC sh
+data/big_tests.md : running 25 / 25 tests
+Running with single process: ......................... Done
+ 0) seq check            : ok
+ 1) wc 1 to 10           : FAIL -> see chester-test-big/big-result-01.md
+ 2) bash with output     : ok
+ 3) tail with input      : FAIL -> see chester-test-big/big-result-03.md
+ 4) Segfault Test A      : FAIL -> see chester-test-big/big-result-04.md
+ 5) Segfault Test B      : ok
+ 6) Error Redirect       : ok
+ 7) Empty Input          : ok
+ 8) Term Signal A        : FAIL -> see chester-test-big/big-result-08.md
+ 9) Term Signal B        : FAIL -> see chester-test-big/big-result-09.md
+10) Term Signal C        : ok
+11) Ignore Output        : ok
+12) Empty Description    : ok
+13) seq 10               : ok
+14) seq 5 5 50           : ok
+15) seq 8 -1 0           : FAIL -> see chester-test-big/big-result-15.md
+16) seq 5000 1000 9000   : FAIL -> see chester-test-big/big-result-16.md
+17) seq 5000 1000 10000  : FAIL -> see chester-test-big/big-result-17.md
+18) seq -s ' ' 10 2 20   : ok
+19) seq -s ' ' 10 -1 1   : FAIL -> see chester-test-big/big-result-19.md
+20) bash echos           : ok
+21) bash interactive A   : ok
+22) bash interactive B   : ok
+23) bash stderr          : ok
+24) bash count           : ok
+Overall: 16 / 25 tests passed
+#+END_SRC
+
+** Chester Run Test 19
+#+TESTY: program='./chester data/big_tests.md 19'
+#+BEGIN_SRC sh
+data/big_tests.md : running 1 / 25 tests
+Running with single process: . Done
+19) seq -s ' ' 10 -1 1   : FAIL -> see chester-test-big/big-result-19.md
+Overall: 0 / 1 tests passed
+#+END_SRC
+
+** Chester Run Tests 5 10 15 20
+#+TESTY: program='./chester data/big_tests.md 5 10 15 20'
+#+BEGIN_SRC sh
+data/big_tests.md : running 4 / 25 tests
+Running with single process: .... Done
+ 5) Segfault Test B      : ok
+10) Term Signal C        : ok
+15) seq 8 -1 0           : FAIL -> see chester-test-big/big-result-15.md
+20) bash echos           : ok
+Overall: 3 / 4 tests passed
+#+END_SRC
+
+** Chester Run Tests 1 3 4 8 17 
+#+TESTY: program='./chester data/big_tests.md 1 3 4 8 17'
+#+BEGIN_SRC sh
+data/big_tests.md : running 5 / 25 tests
+Running with single process: ..... Done
+ 1) wc 1 to 10           : FAIL -> see chester-test-big/big-result-01.md
+ 3) tail with input      : FAIL -> see chester-test-big/big-result-03.md
+ 4) Segfault Test A      : FAIL -> see chester-test-big/big-result-04.md
+ 8) Term Signal A        : FAIL -> see chester-test-big/big-result-08.md
+17) seq 5000 1000 10000  : FAIL -> see chester-test-big/big-result-17.md
+Overall: 0 / 5 tests passed
+#+END_SRC
+
+** Check Output Files
+#+TESTY: program='bash -v'
+#+TESTY: use_valgrind=0
+#+BEGIN_SRC sh
+>> rm chester-test-big/big-output-11.txt # random output
+
+>> ls chester-test-big/big*
+chester-test-big/big-input-01.txt
+chester-test-big/big-input-03.txt
+chester-test-big/big-input-07.txt
+chester-test-big/big-input-08.txt
+chester-test-big/big-input-09.txt
+chester-test-big/big-input-10.txt
+chester-test-big/big-input-21.txt
+chester-test-big/big-input-22.txt
+chester-test-big/big-input-24.txt
+chester-test-big/big-output-00.txt
+chester-test-big/big-output-01.txt
+chester-test-big/big-output-02.txt
+chester-test-big/big-output-03.txt
+chester-test-big/big-output-04.txt
+chester-test-big/big-output-05.txt
+chester-test-big/big-output-06.txt
+chester-test-big/big-output-07.txt
+chester-test-big/big-output-08.txt
+chester-test-big/big-output-09.txt
+chester-test-big/big-output-10.txt
+chester-test-big/big-output-12.txt
+chester-test-big/big-output-13.txt
+chester-test-big/big-output-14.txt
+chester-test-big/big-output-15.txt
+chester-test-big/big-output-16.txt
+chester-test-big/big-output-17.txt
+chester-test-big/big-output-18.txt
+chester-test-big/big-output-19.txt
+chester-test-big/big-output-20.txt
+chester-test-big/big-output-21.txt
+chester-test-big/big-output-22.txt
+chester-test-big/big-output-23.txt
+chester-test-big/big-output-24.txt
+chester-test-big/big-result-00.md
+chester-test-big/big-result-01.md
+chester-test-big/big-result-02.md
+chester-test-big/big-result-03.md
+chester-test-big/big-result-04.md
+chester-test-big/big-result-05.md
+chester-test-big/big-result-06.md
+chester-test-big/big-result-07.md
+chester-test-big/big-result-08.md
+chester-test-big/big-result-09.md
+chester-test-big/big-result-10.md
+chester-test-big/big-result-11.md
+chester-test-big/big-result-12.md
+chester-test-big/big-result-13.md
+chester-test-big/big-result-14.md
+chester-test-big/big-result-15.md
+chester-test-big/big-result-16.md
+chester-test-big/big-result-17.md
+chester-test-big/big-result-18.md
+chester-test-big/big-result-19.md
+chester-test-big/big-result-20.md
+chester-test-big/big-result-21.md
+chester-test-big/big-result-22.md
+chester-test-big/big-result-23.md
+chester-test-big/big-result-24.md
+
+>> head -n 50 chester-test-big/big*
+==> chester-test-big/big-input-01.txt <==
+1
+2
+3
+4
+
+6
+7
+8
+9
+10
+
+==> chester-test-big/big-input-03.txt <==
+Now we are engaged in a great civil war, testing
+whether that nation, or any nation so conceived
+and so dedicated, can long endure. We are met on a
+great battle-field of that war. We have come to
+dedicate a portion of that field, as a final
+resting place for those who here gave their lives
+that that nation might live. It is altogether
+fitting and proper that we should do this.
+
+==> chester-test-big/big-input-07.txt <==
+
+==> chester-test-big/big-input-08.txt <==
+All work and no play makes Jack a dull boy.
+All work and no Play makes Jack a dull boy.
+All work and no pLay makes Jack a dull boy.
+All work and no pLaY makes Jack a dull boy.
+All work and no PLAY makes Jack a dull boy.
+All work and no PlAy makes Jack a dull boy.
+
+==> chester-test-big/big-input-09.txt <==
+All work and no play makes Jack a dull boy.
+All work and no Play makes Jack a dull boy.
+All work and no pLay makes Jack a dull boy.
+All work and no pLaY makes Jack a dull boy.
+All work and no PLAY makes Jack a dull boy.
+All work and no PlAy makes Jack a dull boy.
+
+==> chester-test-big/big-input-10.txt <==
+All work and no play makes Jack a dull boy.
+All work and no Play makes Jack a dull boy.
+All work and no pLay makes Jack a dull boy.
+All work and no pLaY makes Jack a dull boy.
+All work and no PLAY makes Jack a dull boy.
+All work and no PlAy makes Jack a dull boy.
+
+==> chester-test-big/big-input-21.txt <==
+echo First line
+echo Second line
+seq 200|wc
+echo Done
+exit 3;
+
+==> chester-test-big/big-input-22.txt <==
+printf 'Kissy face, kissy face\nSent to your phone\n'
+seq 50|grep 7
+echo About to interrupt
+kill -SIGINT $$
+echo How did this happen;
+
+==> chester-test-big/big-input-24.txt <==
+Apateu, apateu
+Apateu, apateu
+Apateu, apateu
+Uh, uh-huh, uh-huh
+Apateu, apateu
+Apateu, apateu
+Apateu, apateu
+Uh, uh-huh, uh-huh
+
+==> chester-test-big/big-output-00.txt <==
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+
+==> chester-test-big/big-output-01.txt <==
+10  9 20
+
+==> chester-test-big/big-output-02.txt <==
+Hello world
+More output
+All done now
+
+==> chester-test-big/big-output-03.txt <==
+great battle-field of that war. We have come to
+dedicate a portion of that field, as a final
+resting place for those who here gave their lives
+that that nation might live. It is altogether
+fitting and proper that we should do this.
+
+==> chester-test-big/big-output-04.txt <==
+This script raises a SIGSEGV
+About the raise the signal which
+should end the program
+
+==> chester-test-big/big-output-05.txt <==
+This script raises a SIGSEGV
+About the raise the signal which
+should end the program
+
+==> chester-test-big/big-output-06.txt <==
+1 First Message to stdout
+2 Second Message to stderr
+3 Third Message to stdout
+
+==> chester-test-big/big-output-07.txt <==
+0 0 0
+
+==> chester-test-big/big-output-08.txt <==
+The word 'play' appeared on 6 lines
+Terminating now
+
+==> chester-test-big/big-output-09.txt <==
+The word 'play' appeared on 6 lines
+Terminating now
+
+==> chester-test-big/big-output-10.txt <==
+The word 'play' appeared on 6 lines
+Terminating now
+
+==> chester-test-big/big-output-12.txt <==
+4
+6
+8
+10
+12
+
+==> chester-test-big/big-output-13.txt <==
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+
+==> chester-test-big/big-output-14.txt <==
+5
+10
+15
+20
+25
+30
+35
+40
+45
+50
+
+==> chester-test-big/big-output-15.txt <==
+5
+10
+15
+20
+25
+30
+35
+40
+45
+50
+
+==> chester-test-big/big-output-16.txt <==
+5000
+6000
+7000
+8000
+9000
+
+==> chester-test-big/big-output-17.txt <==
+5000
+6000
+7000
+8000
+9000
+
+==> chester-test-big/big-output-18.txt <==
+10 12 14 16 18 20
+
+==> chester-test-big/big-output-19.txt <==
+10 9 8 7 6 5 4 3 2 1
+
+==> chester-test-big/big-output-20.txt <==
+Hi there!
+This is swell
+
+==> chester-test-big/big-output-21.txt <==
+First line
+Second line
+    200     200     692
+Done
+
+==> chester-test-big/big-output-22.txt <==
+Kissy face, kissy face
+Sent to your phone
+7
+17
+27
+37
+47
+About to interrupt
+
+==> chester-test-big/big-output-23.txt <==
+1 First Message to stdout
+2 Second Message to stderr
+3 Third Message to stdout
+
+==> chester-test-big/big-output-24.txt <==
+The word 'apateu' appeared on 6 lines
+Terminating now
+
+==> chester-test-big/big-result-00.md <==
+# TEST 0: seq check (ok)
+## DESCRIPTION
+Checks whether sequence program executes
+
+## PROGRAM: seq 10
+
+## INPUT: None
+
+## OUTPUT: ok
+
+## EXIT CODE: ok
+
+## RESULT: ok
+
+==> chester-test-big/big-result-01.md <==
+# TEST 1: wc 1 to 10 (FAIL)
+## DESCRIPTION
+Checks that wc works with input; should fail as the input is slightly
+mangled.
+
+## PROGRAM: wc
+
+## INPUT:
+1
+2
+3
+4
+
+6
+7
+8
+9
+10
+
+## OUTPUT: MISMATCH at char position 3
+### Expect
+10 10 21
+
+### Actual
+10  9 20
+
+
+## EXIT CODE: ok
+
+## RESULT: FAIL
+
+==> chester-test-big/big-result-02.md <==
+# TEST 2: bash with output (ok)
+## DESCRIPTION
+Checks whether bash produces output that is correct. The test should
+pass.
+
+## PROGRAM: bash -c 'echo Hello world; echo More output; echo All done now;'
+
+## INPUT: None
+
+## OUTPUT: ok
+
+## EXIT CODE: ok
+
+## RESULT: ok
+
+==> chester-test-big/big-result-03.md <==
+# TEST 3: tail with input (FAIL)
+## DESCRIPTION
+Checks that the tail command works for given input. The expected
+output and the exit code are both wrong so the test should fail.
+
+## PROGRAM: tail -n 5
+
+## INPUT:
+Now we are engaged in a great civil war, testing
+whether that nation, or any nation so conceived
+and so dedicated, can long endure. We are met on a
+great battle-field of that war. We have come to
+dedicate a portion of that field, as a final
+resting place for those who here gave their lives
+that that nation might live. It is altogether
+fitting and proper that we should do this.
+
+## OUTPUT: MISMATCH at char position 101
+### Expect
+rtion of that field, as a final
+resting PLACE FOR those who here gave their lives
+### Actual
+rtion of that field, as a final
+resting place for those who here gave their lives
+
+## EXIT CODE: MISMATCH
+- Expect: 3
+- Actual: 0
+
+## RESULT: FAIL
+
+==> chester-test-big/big-result-04.md <==
+# TEST 4: Segfault Test A (FAIL)
+## DESCRIPTION
+Checks that the data/raise_sigsegv.sh program runs and the return code
+is properly handled. The test should fail.
+
+## PROGRAM: bash data/raise_sigsegv.sh
+
+## INPUT: None
+
+## OUTPUT: ok
+
+## EXIT CODE: MISMATCH
+- Expect: 0
+- Actual: -11
+
+## RESULT: FAIL
+
+==> chester-test-big/big-result-05.md <==
+# TEST 5: Segfault Test B (ok)
+## DESCRIPTION
+Like previous test but sets exit code expectation to the segfault signal.
+
+## PROGRAM: bash data/raise_sigsegv.sh
+
+## INPUT: None
+
+## OUTPUT: ok
+
+## EXIT CODE: ok
+
+## RESULT: ok
+
+==> chester-test-big/big-result-06.md <==
+# TEST 6: Error Redirect (ok)
+## DESCRIPTION
+Uses data/print_stdout_stderr.sh to produce output on both stdout and
+stderr to make sure tests redirect both to the results file.
+
+## PROGRAM: bash data/print_stdout_stderr.sh
+
+## INPUT: None
+
+## OUTPUT: ok
+
+## EXIT CODE: ok
+
+## RESULT: ok
+
+==> chester-test-big/big-result-07.md <==
+# TEST 7: Empty Input (ok)
+## DESCRIPTION
+Sends empty input to a program.
+
+## PROGRAM: wc
+
+## INPUT:
+
+## OUTPUT: skipped check
+
+## EXIT CODE: ok
+
+## RESULT: ok
+
+==> chester-test-big/big-result-08.md <==
+# TEST 8: Term Signal A (FAIL)
+## DESCRIPTION
+Checks that term signal is handled properly. Test fails as output and
+exit_cod do not match expected.
+
+## PROGRAM: bash data/count_terminate.sh play
+
+## INPUT:
+All work and no play makes Jack a dull boy.
+All work and no Play makes Jack a dull boy.
+All work and no pLay makes Jack a dull boy.
+All work and no pLaY makes Jack a dull boy.
+All work and no PLAY makes Jack a dull boy.
+All work and no PlAy makes Jack a dull boy.
+
+## OUTPUT: MISMATCH at char position 1
+### Expect
+Terminating now
+
+### Actual
+The word 'play' appeared on 6 lines
+Termin
+
+## EXIT CODE: MISMATCH
+- Expect: 0
+- Actual: -15
+
+## RESULT: FAIL
+
+==> chester-test-big/big-result-09.md <==
+# TEST 9: Term Signal B (FAIL)
+## DESCRIPTION
+Checks that term signal is handled properly. Test passes due to exit
+code not matching expectation.
+
+## PROGRAM: bash data/count_terminate.sh play
+
+## INPUT:
+All work and no play makes Jack a dull boy.
+All work and no Play makes Jack a dull boy.
+All work and no pLay makes Jack a dull boy.
+All work and no pLaY makes Jack a dull boy.
+All work and no PLAY makes Jack a dull boy.
+All work and no PlAy makes Jack a dull boy.
+
+## OUTPUT: ok
+
+## EXIT CODE: MISMATCH
+- Expect: 0
+- Actual: -15
+
+## RESULT: FAIL
+
+==> chester-test-big/big-result-10.md <==
+# TEST 10: Term Signal C (ok)
+## DESCRIPTION
+Checks that term signal is handled properly. Test passes due to
+expected values being met.
+
+## PROGRAM: bash data/count_terminate.sh play
+
+## INPUT:
+All work and no play makes Jack a dull boy.
+All work and no Play makes Jack a dull boy.
+All work and no pLay makes Jack a dull boy.
+All work and no pLaY makes Jack a dull boy.
+All work and no PLAY makes Jack a dull boy.
+All work and no PlAy makes Jack a dull boy.
+
+## OUTPUT: ok
+
+## EXIT CODE: ok
+
+## RESULT: ok
+
+==> chester-test-big/big-result-11.md <==
+# TEST 11: Ignore Output (ok)
+## DESCRIPTION
+Runs a command with unpredictable output but that output should be
+ignored as no expected output is provided leading the test to pass.
+
+## PROGRAM: bash -c 'echo $RANDOM'
+
+## INPUT: None
+
+## OUTPUT: skipped check
+
+## EXIT CODE: ok
+
+## RESULT: ok
+
+==> chester-test-big/big-result-12.md <==
+# TEST 12: Empty Description (ok)
+## DESCRIPTION
+
+## PROGRAM: seq 4 2 12
+
+## INPUT: None
+
+## OUTPUT: ok
+
+## EXIT CODE: ok
+
+## RESULT: ok
+
+==> chester-test-big/big-result-13.md <==
+# TEST 13: seq 10 (ok)
+## DESCRIPTION
+Checks whether sequence program executes
+
+## PROGRAM: seq 10
+
+## INPUT: None
+
+## OUTPUT: ok
+
+## EXIT CODE: ok
+
+## RESULT: ok
+
+==> chester-test-big/big-result-14.md <==
+# TEST 14: seq 5 5 50 (ok)
+## DESCRIPTION
+Checks whether sequence program executes
+
+## PROGRAM: seq 5 5 50
+
+## INPUT: None
+
+## OUTPUT: ok
+
+## EXIT CODE: ok
+
+## RESULT: ok
+
+==> chester-test-big/big-result-15.md <==
+# TEST 15: seq 8 -1 0 (FAIL)
+## DESCRIPTION
+Checks whether sequence program executes
+Should fail.
+
+## PROGRAM: seq 5 5 50
+
+## INPUT: None
+
+## OUTPUT: MISMATCH at char position 0
+### Expect
+8
+7
+6
+5
+4
+3
+2
+1
+
+
+### Actual
+5
+10
+15
+20
+25
+30
+35
+40
+45
+50
+
+
+## EXIT CODE: ok
+
+## RESULT: FAIL
+
+==> chester-test-big/big-result-16.md <==
+# TEST 16: seq 5000 1000 9000 (FAIL)
+## DESCRIPTION
+Checks whether sequence program executes
+Should fail
+
+## PROGRAM: seq 5000 1000 9000
+
+## INPUT: None
+
+## OUTPUT: MISMATCH at char position 25
+### Expect
+5000
+6000
+7000
+8000
+9000
+10000
+
+### Actual
+5000
+6000
+7000
+8000
+9000
+
+
+## EXIT CODE: ok
+
+## RESULT: FAIL
+
+==> chester-test-big/big-result-17.md <==
+# TEST 17: seq 5000 1000 10000 (FAIL)
+## DESCRIPTION
+Checks whether sequence program executes
+Should fail
+
+## PROGRAM: seq 5000 1000 9000
+
+## INPUT: None
+
+## OUTPUT: MISMATCH at char position 25
+### Expect
+5000
+6000
+7000
+8000
+9000
+10000
+
+### Actual
+5000
+6000
+7000
+8000
+9000
+
+
+## EXIT CODE: MISMATCH
+- Expect: 2
+- Actual: 0
+
+## RESULT: FAIL
+
+==> chester-test-big/big-result-18.md <==
+# TEST 18: seq -s ' ' 10 2 20 (ok)
+## DESCRIPTION
+Checks whether sequence program executes
+
+## PROGRAM: seq -s ' ' 10 2 20
+
+## INPUT: None
+
+## OUTPUT: ok
+
+## EXIT CODE: ok
+
+## RESULT: ok
+
+==> chester-test-big/big-result-19.md <==
+# TEST 19: seq -s ' ' 10 -1 1 (FAIL)
+## DESCRIPTION
+Checks whether sequence program executes
+Should fail
+
+## PROGRAM: seq -s ' ' 10 -1 1
+
+## INPUT: None
+
+## OUTPUT: ok
+
+## EXIT CODE: MISMATCH
+- Expect: -3
+- Actual: 0
+
+## RESULT: FAIL
+
+==> chester-test-big/big-result-20.md <==
+# TEST 20: bash echos (ok)
+## DESCRIPTION
+Uses bash echoing
+
+## PROGRAM: bash -c 'echo Hi there!; echo This is swell;'
+
+## INPUT: None
+
+## OUTPUT: ok
+
+## EXIT CODE: ok
+
+## RESULT: ok
+
+==> chester-test-big/big-result-21.md <==
+# TEST 21: bash interactive A (ok)
+## DESCRIPTION
+Checks that input is properly fed to bash
+
+## PROGRAM: bash
+
+## INPUT:
+echo First line
+echo Second line
+seq 200|wc
+echo Done
+exit 3;
+
+## OUTPUT: ok
+
+## EXIT CODE: ok
+
+## RESULT: ok
+
+==> chester-test-big/big-result-22.md <==
+# TEST 22: bash interactive B (ok)
+## DESCRIPTION
+Checks that input is properly fed to bash
+
+## PROGRAM: bash
+
+## INPUT:
+printf 'Kissy face, kissy face\nSent to your phone\n'
+seq 50|grep 7
+echo About to interrupt
+kill -SIGINT $$
+echo How did this happen;
+
+## OUTPUT: ok
+
+## EXIT CODE: ok
+
+## RESULT: ok
+
+==> chester-test-big/big-result-23.md <==
+# TEST 23: bash stderr (ok)
+## DESCRIPTION
+Runs data/print_stdout_stderr.sh which produces output 
+on both stdout and stderr
+
+## PROGRAM: bash data/print_stdout_stderr.sh
+
+## INPUT: None
+
+## OUTPUT: ok
+
+## EXIT CODE: ok
+
+## RESULT: ok
+
+==> chester-test-big/big-result-24.md <==
+# TEST 24: bash count (ok)
+## DESCRIPTION
+Runs data/count_terminate.sh with given input.
+
+## PROGRAM: bash data/count_terminate.sh apateu
+
+## INPUT:
+Apateu, apateu
+Apateu, apateu
+Apateu, apateu
+Uh, uh-huh, uh-huh
+Apateu, apateu
+Apateu, apateu
+Apateu, apateu
+Uh, uh-huh, uh-huh
+
+## OUTPUT: ok
+
+## EXIT CODE: ok
+
+## RESULT: ok
+#+END_SRC
+
+* main errors
+** Create Conflicting File For Test Directory
+#+TESTY: use_valgrind=0
+#+BEGIN_SRC sh
+>> rm -rf chester-test-errors
+>> ln -s /usr/bin/gcc chester-test-errors
+>> stat -c '%N: %F' chester-test-errors
+'chester-test-errors' -> '/usr/bin/gcc': symbolic link
+#+END_SRC
+
+** Run Chester To Report Errors
+#+TESTY: program='./chester data/errors.md'
+#+BEGIN_SRC sh
+data/errors.md : running 4 / 4 tests
+ERROR: Could not create test directory 'chester-test-errors'
+       Non-directory file with that name already exists
+ERROR: Failed to create test directory
+ERROR: problems encountered during test run
+#+END_SRC
+
+** Check Output Files
+#+TESTY: use_valgrind=0
+#+BEGIN_SRC sh
+>> stat -c '%N: %F' chester-test-errors
+'chester-test-errors' -> '/usr/bin/gcc': symbolic link
+>> rm -rf chester-test-errors
+#+END_SRC
+

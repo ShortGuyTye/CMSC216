@@ -1,0 +1,568 @@
+#+TITLE: Problem 3 Chester Functions
+#+TESTY: PREFIX="prob3"
+#+TESTY: USE_VALGRIND=1
+# disable memory leak detection in forked children
+#+TESTY: VALGRIND_OPTS="--child-silent-after-fork=yes"
+#+TESTY: USE_STDBUF=1
+
+# UPDATED: Thu Nov 14 05:20:52 PM EST 2024
+
+* print_window1
+#+TESTY: program='./test_chester print_window1'
+#+BEGIN_SRC sh
+IF_TEST("print_window1") {
+    // Basic tests of print_window() which are shown in the examples
+    // associated with the code.
+    char *s = "ABCDEFGHIJKL";
+    //         012345678901
+    printf("\n--CALL 1--\n");
+    print_window(stdout, s, 4, 3);
+    // BCDEFGH
+    // 1234567
+    printf("\n--CALL 2--\n");
+    print_window(stdout, s, 2, 5);
+    // ABCDEFGH
+    // 01234567
+    printf("\n--CALL 3--\n");
+    print_window(stdout, s, 8, 4);
+    // EFGHIJKL
+    // 45678901
+    printf("\n");
+}
+---OUTPUT---
+
+--CALL 1--
+BCDEFGH
+--CALL 2--
+ABCDEFGH
+--CALL 3--
+EFGHIJKL
+#+END_SRC
+
+* print_window2
+#+TESTY: program='./test_chester print_window2'
+#+BEGIN_SRC sh
+IF_TEST("print_window2") { 
+    char *s =
+      "Four score and seven years ago our fathers brought\n"
+      "forth on this continent, a new nation, conceived\n"
+      "in Liberty, and dedicated to the proposition that\n"
+      "all men are created equal.\n"
+      "\n"
+      "Now we are engaged in a great civil war, testing\n"
+      "whether that nation, or any nation so conceived\n"
+      "and so dedicated, can long endure. We are met on a\n"
+      "great battle-field of that war. We have come to\n"
+      "dedicate a portion of that field, as a final\n"
+      "resting place for those who here gave their lives\n"
+      "that that nation might live. It is altogether\n"
+      "fitting and proper that we should do this.\n"
+      "\n"
+      "But, in a larger sense, we can not dedicate -- we\n"
+      "can not consecrate -- we can not hallow -- this\n"
+      "ground. The brave men, living and dead, who\n"
+      "struggled here, have consecrated it, far above our\n"
+      "poor power to add or detract. The world will\n"
+      "little note, nor long remember what we say here,\n"
+      "but it can never forget what they did here. It is\n"
+      "for us the living, rather, to be dedicated here to\n"
+      "the unfinished work which they who fought here\n"
+      "have thus far so nobly advanced. It is rather for\n"
+      "us to be here dedicated to the great task\n"
+      "remaining before us -- that from these honored\n"
+      "dead we take increased devotion to that cause for\n"
+      "which they gave the last full measure of devotion\n"
+      "-- that we here highly resolve that these dead\n"
+      "shall not have died in vain -- that this nation,\n"
+      "under God, shall have a new birth of freedom --\n"
+      "and that government of the people, by the people,\n"
+      "for the people, shall not perish from the earth.\n"
+      "\n"
+      "Abraham Lincoln\n"
+      "November 19, 1863\n";
+    printf("\n--CALL 1--\n");
+    print_window(stdout, s,  10, 30); // truncate start
+    printf("\n--CALL 2--\n");
+    print_window(stdout, s, 200, 30);
+    printf("\n--CALL 3--\n");
+    print_window(stdout, s, 627, 30);
+    printf("\n--CALL 4--\n");
+    print_window(stdout, s,1485, 30); // truncate end
+    printf("\n");
+}
+---OUTPUT---
+
+--CALL 1--
+Four score and seven years ago our father
+--CALL 2--
+equal.
+
+Now we are engaged in a great civil war, testing
+whet
+--CALL 3--
+icate -- we
+can not consecrate -- we can not hallow -- this
+g
+--CALL 4--
+rish from the earth.
+
+Abraham Lincoln
+November 19, 1863
+
+#+END_SRC
+
+* differing_index1
+#+TESTY: program='./test_chester differing_index1'
+#+BEGIN_SRC sh
+IF_TEST("differing_index1") {
+    ret = differing_index("01234567","0123x567");
+    printf("CALL 1: %d\n",ret);
+    ret = differing_index("012345","01234567");
+    printf("CALL 1: %d\n",ret);
+    ret = differing_index("012345","01x34567");
+    printf("CALL 1: %d\n",ret);
+    ret = differing_index("012345","012345");
+    printf("CALL 1: %d\n",ret);
+}
+---OUTPUT---
+CALL 1: 4
+CALL 1: 6
+CALL 1: 2
+CALL 1: -1
+#+END_SRC
+
+* suite_test_make_resultfile1
+#+TESTY: program='./test_chester suite_test_make_resultfile1'
+#+BEGIN_SRC sh
+IF_TEST("suite_test_make_resultfile1") { 
+    // Sets up a PASSING test with all necessary attributes to create
+    // a resultfile. Checks that suite_test_make_resultfile() creates
+    // the correct output for the test.
+    suite_t suite = {
+      .testdir = strdup("test-results/testdirMR1"),
+      .prefix = strdup("prefMR1"),
+      .tests_count = 10,
+    };
+    suite_create_testdir(&suite);
+    test_t *test = &suite.tests[0];
+    test->title =
+      strdup("A Test of seq");
+    test->description =
+      strdup("A description of using seq\n");
+    test->program = strdup("seq 5");
+    test->input = NULL;
+    test->output_expect =
+      strdup("1\n"
+             "2\n"
+             "3\n"
+             "4\n"
+             "5\n");
+    test->output_actual =
+      strdup(test->output_expect);
+    test->exit_code_expect = 0;
+    test->exit_code_actual = 0;
+    test->state = TEST_PASSED;
+    ret = suite_test_make_resultfile(&suite, 0);
+    printf("ret: %d\n",ret);
+    printf("test->resultfile_name: %s\n",test->resultfile_name);
+    printf("---RESULTFILE CONTENTS---\n");
+    sprintf(cmdbuf,"cat %s",test->resultfile_name);
+    system(cmdbuf);
+    printf("---\n");
+    suite_dealloc(&suite);
+}
+---OUTPUT---
+ret: 0
+test->resultfile_name: test-results/testdirMR1/prefMR1-result-00.md
+---RESULTFILE CONTENTS---
+# TEST 0: A Test of seq (ok)
+## DESCRIPTION
+A description of using seq
+## PROGRAM: seq 5
+
+## INPUT: None
+
+## OUTPUT: ok
+
+## EXIT CODE: ok
+
+## RESULT: ok
+---
+#+END_SRC
+
+* suite_test_make_resultfile2
+#+TESTY: program='./test_chester suite_test_make_resultfile2'
+#+BEGIN_SRC sh
+IF_TEST("suite_test_make_resultfile2") { 
+    // Sets up a FAILED test where the failure is due to an output
+    // mismatch. Checks that suite_test_make_resultfile() formats
+    // output correctly such as printing "FAIL" along with the test
+    // title and printing the character position where a difference in
+    // the output appears along with a window around that position
+    // using differing_index() and print_window() respectively.
+    suite_t suite = {
+      .testdir = strdup("test-results/testdirMR2"),
+      .prefix = strdup("prefMR2"),
+      .tests_count = 10,
+    };
+    suite_create_testdir(&suite);
+    test_t *test = &suite.tests[0];
+    test->title = strdup("A Failing Test of seq");
+    test->description =
+      strdup("A description of using seq\n"
+             "The description spans several lines\n"
+             "and should all appear in the resultfile\n"
+             "\n");
+    test->program = strdup("seq 5");
+    test->input = NULL;
+    test->output_expect =
+      strdup("1\n"
+             "2\n"
+             "3\n"
+             "4\n"
+             "5\n");
+    test->output_actual =
+      strdup("1\n"
+             "20\n"
+             "3\n");
+    test->exit_code_expect = 0;
+    test->exit_code_actual = 0;
+    test->state = TEST_FAILED;
+    ret = suite_test_make_resultfile(&suite, 0);
+    printf("ret: %d\n",ret);
+    printf("test->resultfile_name: %s\n",test->resultfile_name);
+    printf("---RESULTFILE CONTENTS---\n");
+    sprintf(cmdbuf,"cat %s",test->resultfile_name);
+    system(cmdbuf);
+    printf("---\n");
+    suite_dealloc(&suite);
+}
+---OUTPUT---
+ret: 0
+test->resultfile_name: test-results/testdirMR2/prefMR2-result-00.md
+---RESULTFILE CONTENTS---
+# TEST 0: A Failing Test of seq (FAIL)
+## DESCRIPTION
+A description of using seq
+The description spans several lines
+and should all appear in the resultfile
+
+## PROGRAM: seq 5
+
+## INPUT: None
+
+## OUTPUT: MISMATCH at char position 3
+### Expect
+1
+2
+3
+4
+5
+
+### Actual
+1
+20
+3
+
+
+## EXIT CODE: ok
+
+## RESULT: FAIL
+---
+#+END_SRC
+
+* suite_test_make_resultfile3
+#+TESTY: program='./test_chester suite_test_make_resultfile3'
+#+BEGIN_SRC sh
+IF_TEST("suite_test_make_resultfile3") { 
+    // Checks suite_test_make_resultfile() on whether it correctly
+    // formats the output of the EXIT CODE section.
+    suite_t suite = {
+      .testdir = strdup("test-results/testdirMR3"),
+      .prefix = strdup("prefMR3"),
+      .tests_count = 10,
+    };
+    suite_create_testdir(&suite);
+    test_t *test = &suite.tests[0];
+    test->title = strdup("Failure Due to Exit Code");
+    test->description =
+      strdup("true fails to run correctly\n");
+    test->program = strdup("true");
+    test->input = NULL;
+    test->output_expect = strdup("");
+    test->output_actual = strdup("");
+    test->exit_code_expect = 0;
+    test->exit_code_actual = 3;
+    test->state = TEST_FAILED;
+    suite_test_make_resultfile(&suite, 0);
+    printf("test->resultfile_name: %s\n",test->resultfile_name);
+    printf("---RESULTFILE CONTENTS---\n");
+    sprintf(cmdbuf,"cat %s",test->resultfile_name);
+    system(cmdbuf);
+    printf("---\n");
+    suite_dealloc(&suite);
+}
+---OUTPUT---
+test->resultfile_name: test-results/testdirMR3/prefMR3-result-00.md
+---RESULTFILE CONTENTS---
+# TEST 0: Failure Due to Exit Code (FAIL)
+## DESCRIPTION
+true fails to run correctly
+## PROGRAM: true
+
+## INPUT: None
+
+## OUTPUT: ok
+
+## EXIT CODE: MISMATCH
+- Expect: 0
+- Actual: 3
+
+## RESULT: FAIL
+---
+#+END_SRC
+
+* suite_test_make_resultfile4
+#+TESTY: program='./test_chester suite_test_make_resultfile4'
+#+BEGIN_SRC sh
+IF_TEST("suite_test_make_resultfile4") { 
+    // Checks whether suite_test_make_resultfile() honors the
+    // output_expect field being NULL in which case the OUTPUT section
+    // should print "check skipped" to indicate no output checking was
+    // done.
+    suite_t suite = {
+      .testdir = strdup("test-results/testdirMR4"),
+      .prefix = strdup("prefMR4"),
+      .tests_count = 10,
+    };
+    suite_create_testdir(&suite);
+    test_t *test = &suite.tests[0];
+    test->title = strdup("Expected output skipped");
+    test->description =
+      strdup("A short description of a test that skip\n"
+             "checking output\n");
+    test->program = strdup("gcc x.c");
+    test->input = NULL;
+    test->output_expect = NULL;
+    test->output_actual =
+      strdup("This output should not be checked\n");
+    test->exit_code_expect = 0;
+    test->exit_code_actual = 0;
+    test->state = TEST_PASSED;
+    suite_test_make_resultfile(&suite, 0);
+    printf("test->resultfile_name: %s\n",test->resultfile_name);
+    printf("---RESULTFILE CONTENTS---\n");
+    sprintf(cmdbuf,"cat %s",test->resultfile_name);
+    system(cmdbuf);
+    printf("---\n");
+    suite_dealloc(&suite);
+}
+---OUTPUT---
+test->resultfile_name: test-results/testdirMR4/prefMR4-result-00.md
+---RESULTFILE CONTENTS---
+# TEST 0: Expected output skipped (ok)
+## DESCRIPTION
+A short description of a test that skip
+checking output
+## PROGRAM: gcc x.c
+
+## INPUT: None
+
+## OUTPUT: skipped check
+
+## EXIT CODE: ok
+
+## RESULT: ok
+---
+#+END_SRC
+
+* suite_test_make_resultfile5
+#+TESTY: program='./test_chester suite_test_make_resultfile5'
+#+BEGIN_SRC sh
+IF_TEST("suite_test_make_resultfile5") { 
+    // Checks that when the input field of the test is not NULL, the
+    // INPUT section in the result file is created properly by
+    // suite_test_make_resultfile() and contains the test input.
+    suite_t suite = {
+      .testdir = strdup("test-results/testdirMR5"),
+      .prefix = strdup("prefMR5"),
+      .tests_count = 10,
+    };
+    suite_create_testdir(&suite);
+    test_t *test = &suite.tests[0];
+    test->title = strdup("Input present");
+    test->description =
+      strdup("The test uses input, it should be printed in the\n"
+             "resultfile\n\n");
+    test->program = strdup("bash");
+    test->input =
+      strdup("echo Hello world\n"
+             "seq 3\n"
+             "exit 2\n"
+             "echo Unreachable\n");
+    test->output_expect =
+      strdup("Hello world\n"
+             "1\n"
+             "2\n"
+             "3\n"
+             "Unreachable\n");
+    test->output_actual =
+      strdup("Hello world\n"
+             "1\n"
+             "2\n"
+             "3\n");
+    test->exit_code_expect = 0;
+    test->exit_code_actual = 2;
+    test->state = TEST_FAILED;
+    suite_test_make_resultfile(&suite, 0);
+    printf("test->resultfile_name: %s\n",test->resultfile_name);
+    printf("---RESULTFILE CONTENTS---\n");
+    sprintf(cmdbuf,"cat %s",test->resultfile_name);
+    system(cmdbuf);
+    printf("---\n");
+    suite_dealloc(&suite);
+}
+---OUTPUT---
+test->resultfile_name: test-results/testdirMR5/prefMR5-result-00.md
+---RESULTFILE CONTENTS---
+# TEST 0: Input present (FAIL)
+## DESCRIPTION
+The test uses input, it should be printed in the
+resultfile
+
+## PROGRAM: bash
+
+## INPUT:
+echo Hello world
+seq 3
+exit 2
+echo Unreachable
+
+## OUTPUT: MISMATCH at char position 18
+### Expect
+Hello world
+1
+2
+3
+Unreachable
+
+### Actual
+Hello world
+1
+2
+3
+
+
+## EXIT CODE: MISMATCH
+- Expect: 0
+- Actual: 2
+
+## RESULT: FAIL
+---
+#+END_SRC
+
+* suite_test_make_resultfile6
+#+TESTY: program='./test_chester suite_test_make_resultfile6'
+#+BEGIN_SRC sh
+IF_TEST("suite_test_make_resultfile6") { 
+    // Checks that for tests with a larger expected / actual output,
+    // the OUTPUT section is created correctly by
+    // suite_test_make_resultfile() and that the output generated
+    // using print_window() is correct with a window of TEST_DIFFWIDTH
+    // characters around the first mismatching character.
+    suite_t suite = {
+      .testdir = strdup("test-results/testdirMR6"),
+      .prefix = strdup("prefMR6"),
+      .tests_count = 10,
+    };
+    suite_create_testdir(&suite);
+    test_t *test = &suite.tests[0];
+    test->title = strdup("Larger output diff");
+    test->description =
+      strdup("Larger output present with a diffreence between\n"
+             "expect and actual\n\n");
+    test->program = strdup("grep -n -i IT data/gettysburg.txt");
+    test->input = NULL;
+    test->output_expect =
+      strdup("3:in Liberty, and dedicated to the proposition that\n"
+             "12:that that nation might live. It is altogether\n"
+             "13:fitting and proper that we should do this.\n"
+             "18:struggled here, have consecrated it, far above our\n"
+             "20:little note, nor long remember what we say here,\n"
+             "21:but it can never forget what they did here. It is\n"
+             "24:have thus far so nobly advanced. It is rather for\n");
+    test->output_actual =
+      strdup("3:in Liberty, and dedicated to the proposition that\n"
+             "12:that that nation might live. It is altogether\n"
+             "13:fitting and proper that we should do this.\n"
+             "18:struggled here, have consecrated it, far above our\n"
+             "20:little note, NOR LONG REMEMBER what we say here,\n"
+             "21:but it can never forget what they did here. It is\n"
+             "24:have thus far so nobly advanced. It is rather for\n");
+    test->exit_code_expect = 0;
+    test->exit_code_actual = 0;
+    test->state = TEST_FAILED;
+    suite_test_make_resultfile(&suite, 0);
+    printf("test->resultfile_name: %s\n",test->resultfile_name);
+    printf("---RESULTFILE CONTENTS---\n");
+    sprintf(cmdbuf,"cat %s",test->resultfile_name);
+    system(cmdbuf);
+    printf("---\n");
+    suite_dealloc(&suite);
+}
+---OUTPUT---
+test->resultfile_name: test-results/testdirMR6/prefMR6-result-00.md
+---RESULTFILE CONTENTS---
+# TEST 0: Larger output diff (FAIL)
+## DESCRIPTION
+Larger output present with a diffreence between
+expect and actual
+
+## PROGRAM: grep -n -i IT data/gettysburg.txt
+
+## INPUT: None
+
+## OUTPUT: MISMATCH at char position 217
+### Expect
+rated it, far above our
+20:little note, nor long remember what we say here,
+21:bu
+### Actual
+rated it, far above our
+20:little note, NOR LONG REMEMBER what we say here,
+21:bu
+
+## EXIT CODE: ok
+
+## RESULT: FAIL
+---
+#+END_SRC
+
+* suite_test_make_resultfile7
+#+TESTY: program='./test_chester suite_test_make_resultfile7'
+#+BEGIN_SRC sh
+IF_TEST("suite_test_make_resultfile7") { 
+    // Checks that if suite_test_make_resultfile() cannot create the
+    // result file, it bails after printing an error message.
+    suite_t suite = {
+      .testdir = strdup("test-results/testdirMR7"),
+      .prefix = strdup("prefMR7"),
+      .tests_count = 10,
+    };
+    suite_create_testdir(&suite);
+    test_t *test = &suite.tests[0];
+    test->title = strdup("Cannot ceate");
+    system("rm -f test-results/testdirMR7/prefMR7-result-00.md");
+    system("ln -s /usr/bin/gcc test-results/testdirMR7/prefMR7-result-00.md");
+    // set up existing file which cannot be opened for writing
+    ret = suite_test_make_resultfile(&suite, 0);
+    // should print an error message
+    printf("ret: %d\n",ret);
+    suite_dealloc(&suite);
+    system("rm -f test-results/testdirMR7/prefMR7-result-00.md");
+}
+---OUTPUT---
+ERROR: Could not create result file 'test-results/testdirMR7/prefMR7-result-00.md'
+ret: -1
+#+END_SRC
+

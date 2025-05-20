@@ -1,0 +1,523 @@
+#+TITLE: Problem 1 Chester Functions
+#+TESTY: PREFIX="prob1"
+#+TESTY: USE_VALGRIND=1
+# disable memory leak detection in forked children
+#+TESTY: VALGRIND_OPTS="--child-silent-after-fork=yes"
+#+TESTY: USE_STDBUF=1
+
+* suite_create_testdir1
+#+TESTY: program='./test_chester suite_create_testdir1'
+#+BEGIN_SRC sh
+IF_TEST("suite_create_testdir1") { 
+    // Check that testing directories are created properly. Command
+    // `ls -Fd` will list a file and append a / if it is a directory.
+    system("rm -rf test-results/testdir1");
+    suite_t suite = {.testdir = "test-results/testdir1"};
+    ret = suite_create_testdir(&suite);
+    printf("ret: %d\n",ret);
+    system("ls -Fd test-results/testdir1");
+}
+---OUTPUT---
+ret: 1
+test-results/testdir1/
+#+END_SRC
+
+* suite_create_testdir2
+#+TESTY: program='./test_chester suite_create_testdir2'
+#+BEGIN_SRC sh
+IF_TEST("suite_create_testdir2") { 
+    // Checks cases associated with successful new directory creation
+    // and detecting a pre-existing directory and not trying to
+    // re-create it.
+    system("rm -rf test-results/testdir2");
+    printf("SUCCESSFUL DIRECTORY CREATION\n");
+    suite_t suite = {.testdir = "test-results/testdir2"};
+    ret = suite_create_testdir(&suite);
+    printf("ret: %d\n",ret);
+    system("ls -Fd test-results/testdir2");
+
+    printf("DETECTION OF EXISTING DIRECTORY\n");
+    ret = suite_create_testdir(&suite);
+    printf("ret: %d\n",ret);
+    system("ls -Fd test-results/testdir2");
+}
+---OUTPUT---
+SUCCESSFUL DIRECTORY CREATION
+ret: 1
+test-results/testdir2/
+DETECTION OF EXISTING DIRECTORY
+ret: 0
+test-results/testdir2/
+#+END_SRC
+
+* suite_create_testdir3
+#+TESTY: program='./test_chester suite_create_testdir3'
+#+BEGIN_SRC sh
+IF_TEST("suite_create_testdir3") { 
+    // Checks for test directory failure due to an existing regular
+    // file that should not be overwritten.
+    printf("FAILURE DUE TO EXISTING REGUALR FILE\n");
+    system("rm -rf test-results/regular_file.txt");
+    system("echo Dont tread on me > test-results/regular_file.txt");
+    suite_t suite = {.testdir = "test-results/regular_file.txt"};
+    ret = suite_create_testdir(&suite);
+    printf("ret: %d\n",ret);
+    system("ls -Fd test-results/regular_file.txt");
+}
+---OUTPUT---
+FAILURE DUE TO EXISTING REGUALR FILE
+ERROR: Could not create test directory 'test-results/regular_file.txt'
+       Non-directory file with that name already exists
+ret: -1
+test-results/regular_file.txt
+#+END_SRC
+
+* suite_test_set_outfile_name1
+#+TESTY: program='./test_chester suite_test_set_outfile_name1'
+#+BEGIN_SRC sh
+IF_TEST("suite_test_set_outfile_name1") { 
+    // Checks that the outfile_name is correctly set. Format of the
+    // outfile name must match and the string associated with the
+    // field must be heap-allocated and therefore free()-able.
+    suite_t suite = {
+      .testdir = "test-results/testdirX",
+      .prefix = "testprob1",
+      .tests_count = 4,
+    };
+    ret = suite_test_set_outfile_name(&suite, 0);
+    printf("ret: %d\n",ret);
+    printf("suite.tests[0].outfile_name: %s\n",suite.tests[0].outfile_name);
+    free(suite.tests[0].outfile_name);
+}
+---OUTPUT---
+ret: 0
+suite.tests[0].outfile_name: test-results/testdirX/testprob1-output-00.txt
+#+END_SRC
+
+* suite_test_set_outfile_name2
+#+TESTY: program='./test_chester suite_test_set_outfile_name2'
+#+BEGIN_SRC sh
+IF_TEST("suite_test_set_outfile_name2") { 
+    // Checks that the outfile_name is correctly set. Format of the
+    // outfile name must match and the string associated with the
+    // field must be heap-allocated and therefore free()-able.
+    suite_t suite = {
+      .testdir = "test-results/testdirY",
+      .prefix = "another_prefix",
+      .tests_count = 30,
+    };
+    ret = suite_test_set_outfile_name(&suite, 21);
+    printf("ret: %d\n",ret);
+    printf("suite.tests[21].outfile_name: %s\n",suite.tests[21].outfile_name);
+    free(suite.tests[21].outfile_name);
+}
+---OUTPUT---
+ret: 0
+suite.tests[21].outfile_name: test-results/testdirY/another_prefix-output-21.txt
+#+END_SRC
+
+* suite_test_create_infile1
+#+TESTY: program='./test_chester suite_test_create_infile1'
+#+BEGIN_SRC sh
+IF_TEST("suite_test_create_infile1") { 
+    // Checks that when a test `input` field is non-null, the
+    // `infile_name` is set correctly to reflect the testdir and
+    // prefix of the suite. Also checks that the file is created and
+    // the contents of `input` are placed within it.
+    system("mkdir -p test-results/testdirZ");
+    suite_t suite = {
+      .testdir = "test-results/testdirZ",
+      .prefix = "prefZ",
+      .tests_count = 5,
+    };
+    suite.tests[3].input = "This is the\ninput for the test\n";
+    ret = suite_test_create_infile(&suite, 3);
+    printf("ret: %d\n",ret);
+    printf("suite.tests[3].infile_name: %s\n",suite.tests[3].infile_name);
+    printf("CONTENTS OF test-results/testdirZ/prefZ-input-03.txt\n"); 
+    system("cat test-results/testdirZ/prefZ-input-03.txt");
+    free(suite.tests[3].infile_name);
+}
+---OUTPUT---
+ret: 0
+suite.tests[3].infile_name: test-results/testdirZ/prefZ-input-03.txt
+CONTENTS OF test-results/testdirZ/prefZ-input-03.txt
+This is the
+input for the test
+#+END_SRC
+
+* suite_test_create_infile2
+#+TESTY: program='./test_chester suite_test_create_infile2'
+#+BEGIN_SRC sh
+IF_TEST("suite_test_create_infile2") { 
+    // Checks for repeated creation of input files overwrites existing
+    // ones using options to the open() system call.  Also checks that
+    // on failures to create the input file, an appropriate error
+    // message is produced using the perror() function which will
+    // report why system calls like open() fail.
+    system("mkdir -p test-results/testdirW");
+    system("rm -rf test-results/testdirW/prefW-input-12.txt");
+    suite_t suite = {
+      .testdir = "test-results/testdirW",
+      .prefix = "prefW",
+      .tests_count = 18,
+    };
+    printf("\nSUCCESS INITIAL CREATION CASE\n");
+    suite.tests[12].input = "More input\nfor the test\nthis time\n";
+    ret = suite_test_create_infile(&suite, 12);
+    printf("ret: %d\n",ret);
+    printf("suite.tests[12].infile_name: %s\n",suite.tests[12].infile_name);
+    printf("CONTENTS OF test-results/testdirW/prefW-input-12.txt\n"); 
+    system("cat test-results/testdirW/prefW-input-12.txt");
+    free(suite.tests[12].infile_name);
+    suite.infile_name = NULL;
+
+    printf("\nSUCCESS OVERWRITE CASE\n");
+    suite.tests[12].input = "Different input\nThis time around\n";
+    ret = suite_test_create_infile(&suite, 12);
+    printf("ret: %d\n",ret);
+    printf("suite.tests[12].infile_name: %s\n",suite.tests[12].infile_name);
+    printf("CONTENTS OF test-results/testdirW/prefW-input-12.txt\n"); 
+    system("cat test-results/testdirW/prefW-input-12.txt");
+    free(suite.tests[12].infile_name);
+    suite.infile_name = NULL;
+  
+    printf("\nFAIL CREATE DUE EXISTING DIRECTORY\n");
+    system("rm -rf test-results/testdirW/prefW-input-12.txt");
+    system("mkdir test-results/testdirW/prefW-input-12.txt");
+    suite.tests[12].input = "Access denied!!";
+    ret = suite_test_create_infile(&suite, 12);
+    printf("ret: %d\n",ret);
+    printf("suite.tests[12].infile_name: %s\n",suite.tests[12].infile_name);
+    printf("CONTENTS OF test-results/testdirW/prefW-input-12.txt\n"); 
+    system("cat test-results/testdirW/prefW-input-12.txt");
+    free(suite.tests[12].infile_name);
+    suite.infile_name = NULL;
+
+    printf("\nFAIL OVERWRITE DUE TO PERMISSIONS\n");
+    suite.testdir = "/etc";     // root directory access forbidden
+    suite.tests[12].input = "Access denied?!?!";
+    ret = suite_test_create_infile(&suite, 12);
+    printf("ret: %d\n",ret);
+    printf("suite.tests[12].infile_name: %s\n",suite.tests[12].infile_name);
+    printf("CONTENTS OF /etc/prefW-input-12.txt\n"); 
+    system("cat /etc/prefW-input-12.txt");
+    free(suite.tests[12].infile_name);
+    suite.infile_name = NULL;
+
+}
+---OUTPUT---
+
+SUCCESS INITIAL CREATION CASE
+ret: 0
+suite.tests[12].infile_name: test-results/testdirW/prefW-input-12.txt
+CONTENTS OF test-results/testdirW/prefW-input-12.txt
+More input
+for the test
+this time
+
+SUCCESS OVERWRITE CASE
+ret: 0
+suite.tests[12].infile_name: test-results/testdirW/prefW-input-12.txt
+CONTENTS OF test-results/testdirW/prefW-input-12.txt
+Different input
+This time around
+
+FAIL CREATE DUE EXISTING DIRECTORY
+Could not create input file: Is a directory
+ret: -1
+suite.tests[12].infile_name: test-results/testdirW/prefW-input-12.txt
+CONTENTS OF test-results/testdirW/prefW-input-12.txt
+cat: test-results/testdirW/prefW-input-12.txt: Is a directory
+
+FAIL OVERWRITE DUE TO PERMISSIONS
+Could not create input file: Permission denied
+ret: -1
+suite.tests[12].infile_name: /etc/prefW-input-12.txt
+CONTENTS OF /etc/prefW-input-12.txt
+cat: /etc/prefW-input-12.txt: No such file or directory
+#+END_SRC
+
+* suite_test_read_output_actual1
+#+TESTY: program='./test_chester suite_test_read_output_actual1'
+#+BEGIN_SRC sh
+IF_TEST("suite_test_read_output_actual1") { 
+    system("mkdir -p test-results/testdirA");
+    suite_t suite = {
+      .testdir = "test-results/testdirA",
+      .prefix = "prefA",
+      .tests_count = 10,
+    };
+    system("seq 15 > test-results/testdirA/prefA-output-08.txt");
+    suite_test_set_outfile_name(&suite, 8);
+    ret = suite_test_read_output_actual(&suite, 8);
+    printf("ret: %d\n",ret);
+    printf("suite.tests[8].output_actual:\n---\n%s---\n",suite.tests[8].output_actual);
+    free(suite.tests[8].outfile_name);
+    free(suite.tests[8].output_actual);
+}
+---OUTPUT---
+ret: 36
+suite.tests[8].output_actual:
+---
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+---
+#+END_SRC
+
+* suite_test_read_output_actual2
+#+TESTY: program='./test_chester suite_test_read_output_actual2'
+#+BEGIN_SRC sh
+IF_TEST("suite_test_read_output_actual2") { 
+    // Checks that larger more complex files are correctly read during
+    // input accumulation.
+    system("mkdir -p test-results/testdirB");
+    suite_t suite = {
+      .testdir = "test-results/testdirB",
+      .prefix = "prefB",
+      .tests_count = 20,
+    };  
+    printf("FIRST CASE OF MULTILINE TEXT\n");
+    system("rm -rf file.txt");
+    system("echo Mauris ac felis vel velit tristique     >> file.txt");
+    system("echo imperdiet.  Nullam eu ante vel est      >> file.txt");
+    system("echo convallis dignissim.  Fusce suscipit,   >> file.txt");
+    system("echo wisi nec facilisis facilisis, est dui   >> file.txt");
+    system("echo fermentum leo, quis tempor ligula erat  >> file.txt");
+    system("echo quis odio.  Nunc porta vulputate tellus.>> file.txt");
+    system("echo Nunc rutrum turpis sed pede.  Sed       >> file.txt");
+    system("echo bibendum.  Aliquam posuere.  Nunc       >> file.txt");
+    system("echo aliquet, augue nec adipiscing interdum, >> file.txt");
+    system("echo lacus tellus malesuada massa, quis      >> file.txt");
+    system("echo varius mi purus non odio.               >> file.txt");
+    system("mv file.txt test-results/testdirB/prefB-output-18.txt");
+    suite_test_set_outfile_name(&suite, 18);
+    ret = suite_test_read_output_actual(&suite, 18);
+    printf("ret: %d\n",ret);
+    printf("suite.tests[18].output_actual:\n---\n%s---\n",suite.tests[18].output_actual);
+    free(suite.tests[18].outfile_name);
+    free(suite.tests[18].output_actual);
+
+    printf("\nSECOND CASE OF LARGE NUMERIC VALUES\n");
+    system("rm -rf file.txt");
+    system("seq -w 500400300200100000 500400300200102500 > file.txt");
+    system("mv file.txt test-results/testdirB/prefB-output-12.txt");
+    suite_test_set_outfile_name(&suite, 12);
+    ret = suite_test_read_output_actual(&suite, 12);
+    printf("ret: %d\n",ret);
+    // printf("suite.tests[12].output_actual:\n---\n%s---\n",suite.tests[12].output_actual);
+    // 
+    // printing the entire string is a LOT to check, so print a few
+    // sample locations, 19 chars per line, print sprinkling of lines.
+    char *out = suite.tests[12].output_actual;
+    int len = strlen(out);
+    for(int i=0; i < len; i+=19*25){
+      printf("[%5d]: %.19s",i,out+i);
+    }
+    printf("END:\n%s",out+len-19*2);
+
+    free(suite.tests[12].outfile_name);
+    free(suite.tests[12].output_actual);
+}
+---OUTPUT---
+FIRST CASE OF MULTILINE TEXT
+ret: 390
+suite.tests[18].output_actual:
+---
+Mauris ac felis vel velit tristique
+imperdiet. Nullam eu ante vel est
+convallis dignissim. Fusce suscipit,
+wisi nec facilisis facilisis, est dui
+fermentum leo, quis tempor ligula erat
+quis odio. Nunc porta vulputate tellus.
+Nunc rutrum turpis sed pede. Sed
+bibendum. Aliquam posuere. Nunc
+aliquet, augue nec adipiscing interdum,
+lacus tellus malesuada massa, quis
+varius mi purus non odio.
+---
+
+SECOND CASE OF LARGE NUMERIC VALUES
+ret: 47519
+[    0]: 500400300200100000
+[  475]: 500400300200100025
+[  950]: 500400300200100050
+[ 1425]: 500400300200100075
+[ 1900]: 500400300200100100
+[ 2375]: 500400300200100125
+[ 2850]: 500400300200100150
+[ 3325]: 500400300200100175
+[ 3800]: 500400300200100200
+[ 4275]: 500400300200100225
+[ 4750]: 500400300200100250
+[ 5225]: 500400300200100275
+[ 5700]: 500400300200100300
+[ 6175]: 500400300200100325
+[ 6650]: 500400300200100350
+[ 7125]: 500400300200100375
+[ 7600]: 500400300200100400
+[ 8075]: 500400300200100425
+[ 8550]: 500400300200100450
+[ 9025]: 500400300200100475
+[ 9500]: 500400300200100500
+[ 9975]: 500400300200100525
+[10450]: 500400300200100550
+[10925]: 500400300200100575
+[11400]: 500400300200100600
+[11875]: 500400300200100625
+[12350]: 500400300200100650
+[12825]: 500400300200100675
+[13300]: 500400300200100700
+[13775]: 500400300200100725
+[14250]: 500400300200100750
+[14725]: 500400300200100775
+[15200]: 500400300200100800
+[15675]: 500400300200100825
+[16150]: 500400300200100850
+[16625]: 500400300200100875
+[17100]: 500400300200100900
+[17575]: 500400300200100925
+[18050]: 500400300200100950
+[18525]: 500400300200100975
+[19000]: 500400300200101000
+[19475]: 500400300200101025
+[19950]: 500400300200101050
+[20425]: 500400300200101075
+[20900]: 500400300200101100
+[21375]: 500400300200101125
+[21850]: 500400300200101150
+[22325]: 500400300200101175
+[22800]: 500400300200101200
+[23275]: 500400300200101225
+[23750]: 500400300200101250
+[24225]: 500400300200101275
+[24700]: 500400300200101300
+[25175]: 500400300200101325
+[25650]: 500400300200101350
+[26125]: 500400300200101375
+[26600]: 500400300200101400
+[27075]: 500400300200101425
+[27550]: 500400300200101450
+[28025]: 500400300200101475
+[28500]: 500400300200101500
+[28975]: 500400300200101525
+[29450]: 500400300200101550
+[29925]: 500400300200101575
+[30400]: 500400300200101600
+[30875]: 500400300200101625
+[31350]: 500400300200101650
+[31825]: 500400300200101675
+[32300]: 500400300200101700
+[32775]: 500400300200101725
+[33250]: 500400300200101750
+[33725]: 500400300200101775
+[34200]: 500400300200101800
+[34675]: 500400300200101825
+[35150]: 500400300200101850
+[35625]: 500400300200101875
+[36100]: 500400300200101900
+[36575]: 500400300200101925
+[37050]: 500400300200101950
+[37525]: 500400300200101975
+[38000]: 500400300200102000
+[38475]: 500400300200102025
+[38950]: 500400300200102050
+[39425]: 500400300200102075
+[39900]: 500400300200102100
+[40375]: 500400300200102125
+[40850]: 500400300200102150
+[41325]: 500400300200102175
+[41800]: 500400300200102200
+[42275]: 500400300200102225
+[42750]: 500400300200102250
+[43225]: 500400300200102275
+[43700]: 500400300200102300
+[44175]: 500400300200102325
+[44650]: 500400300200102350
+[45125]: 500400300200102375
+[45600]: 500400300200102400
+[46075]: 500400300200102425
+[46550]: 500400300200102450
+[47025]: 500400300200102475
+[47500]: 500400300200102500
+END:
+500400300200102499
+500400300200102500
+#+END_SRC
+
+* suite_test_read_output_actual3
+#+TESTY: program='./test_chester suite_test_read_output_actual3'
+#+BEGIN_SRC sh
+IF_TEST("suite_test_read_output_actual3") { 
+    // Checks that edge cases like absence of outfile_name or
+    // inability to read it are reported via error mesages.
+    system("mkdir -p test-results/testdirC");
+    suite_t suite = {
+      .testdir = "test-results/testdirC",
+      .prefix = "prefC",
+      .tests_count = 50,
+    };
+
+    printf("\nEXISTING BUT EMPTY OUTPUT FILE\n");
+    suite_test_set_outfile_name(&suite, 32);
+    system("touch test-results/testdirC/prefC-output-32.txt");
+    ret = suite_test_read_output_actual(&suite, 32);
+    printf("ret: %d\n",ret);
+    printf("suite.tests[32].output_actual:\n---\n%s---\n",suite.tests[32].output_actual);
+    free(suite.tests[32].outfile_name);
+    free(suite.tests[32].output_actual);
+
+    printf("\nMISSING OUTPUT FILE\n");
+    suite_test_set_outfile_name(&suite, 36);
+    ret = suite_test_read_output_actual(&suite, 36);
+    printf("ret: %d\n",ret);
+    printf("suite.tests[36].output_actual:\n---\n%s---\n",suite.tests[36].output_actual);
+    free(suite.tests[36].outfile_name);
+    /// free(suite.tests[36].output_actual);  // should still be NULL
+
+    printf("\nOUTPUT FILE CANNOT BE OPENED FOR READING\n");
+    suite_test_set_outfile_name(&suite, 45);
+    system("touch test-results/testdirC/prefC-output-35.txt");
+    system("chmod ugo-r test-results/testdirC/prefC-output-35.txt");
+    ret = suite_test_read_output_actual(&suite, 45);
+    printf("ret: %d\n",ret);
+    printf("suite.tests[45].output_actual:\n---\n%s---\n",suite.tests[45].output_actual);
+    free(suite.tests[45].outfile_name);
+    /// free(suite.tests[45].output_actual);  // should still be NULL
+}
+---OUTPUT---
+
+EXISTING BUT EMPTY OUTPUT FILE
+ret: 0
+suite.tests[32].output_actual:
+---
+---
+
+MISSING OUTPUT FILE
+Couldn't open file: No such file or directory
+ret: -1
+suite.tests[36].output_actual:
+---
+(null)---
+
+OUTPUT FILE CANNOT BE OPENED FOR READING
+Couldn't open file: No such file or directory
+ret: -1
+suite.tests[45].output_actual:
+---
+(null)---
+#+END_SRC
+

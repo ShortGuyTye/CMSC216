@@ -1,0 +1,901 @@
+#+TITLE: Problem 4 Chester Functions
+#+TESTY: PREFIX="prob4"
+#+TESTY: USE_VALGRIND=1
+# disable memory leak detection in forked children
+#+TESTY: VALGRIND_OPTS="--child-silent-after-fork=yes"
+#+TESTY: USE_STDBUF=1
+
+# UPDATED: Thu Nov 14 05:20:52 PM EST 2024
+
+* suite_run_tests_singleproc1
+#+TESTY: program='./test_chester suite_run_tests_singleproc1'
+#+BEGIN_SRC sh
+IF_TEST("suite_run_tests_singleproc1") { 
+    // Loads a test file with a single test in the suite and sets it
+    // to be the test to run.  Checks that
+    // suite_run_tests_singleproc() runs the test, produces the
+    // correct output messages, and creates the necessary results
+    // files.
+    suite_t suite;
+    suite_test_setup(&suite,"data/one_test.md","RTS1");
+    suite.tests_torun[0] = 0;
+    suite.tests_torun_count = 1;
+    printf("CALLING FUNCTION\n");
+    ret = suite_run_tests_singleproc(&suite);
+    printf("FUNCTION DONE\n");
+    printf("ret: %d\n",ret);
+    suite_test_print_all(&suite);
+    suite_dealloc(&suite);
+}
+---OUTPUT---
+CALLING FUNCTION
+Running with single process: . Done
+FUNCTION DONE
+ret: 0
+
+COMPLETED SUITE
+suite->infile_name: data/one_test.md
+suite->tests_torun_count: 1
+suite->tests_passed:      1
+
+CONTENTS OF TESTDIR
+prefRTS1-output-00.txt
+prefRTS1-result-00.md
+
+TEST RESULTS
+tests[0]->resultfile_name:
+test-results/testdirRTS1/prefRTS1-result-00.md
+---Resultfile Contents---
+# TEST 0: seq check (ok)
+## DESCRIPTION
+Checks whether sequence program executes
+
+## PROGRAM: seq 10
+
+## INPUT: None
+
+## OUTPUT: ok
+
+## EXIT CODE: ok
+
+## RESULT: ok
+------
+
+#+END_SRC
+
+* suite_run_tests_singleproc2
+#+TESTY: program='./test_chester suite_run_tests_singleproc2'
+#+BEGIN_SRC sh
+IF_TEST("suite_run_tests_singleproc2") { 
+    // Loads a test suite with 4 tests and runs all 4 of them via
+    // suite_run_tests_singleproc(). 2 of the 4 tests pass.. Checks
+    // that the results file for each test is formatted correctly.
+    suite_t suite;
+    suite_test_setup(&suite,"data/four_tests.md","RTS2");
+    suite.tests_torun_count = 4;
+    for(int i=0; i<4; i++){
+      suite.tests_torun[i] = i;
+    }
+    printf("CALLING FUNCTION\n");
+    ret = suite_run_tests_singleproc(&suite);
+    printf("FUNCTION DONE\n");
+    printf("ret: %d\n",ret);
+    suite_test_print_all(&suite);
+    suite_dealloc(&suite);
+}
+---OUTPUT---
+CALLING FUNCTION
+Running with single process: .... Done
+FUNCTION DONE
+ret: 0
+
+COMPLETED SUITE
+suite->infile_name: data/four_tests.md
+suite->tests_torun_count: 4
+suite->tests_passed:      2
+
+CONTENTS OF TESTDIR
+prefRTS2-input-01.txt
+prefRTS2-input-03.txt
+prefRTS2-output-00.txt
+prefRTS2-output-01.txt
+prefRTS2-output-02.txt
+prefRTS2-output-03.txt
+prefRTS2-result-00.md
+prefRTS2-result-01.md
+prefRTS2-result-02.md
+prefRTS2-result-03.md
+
+TEST RESULTS
+tests[0]->resultfile_name:
+test-results/testdirRTS2/prefRTS2-result-00.md
+---Resultfile Contents---
+# TEST 0: seq check (ok)
+## DESCRIPTION
+Checks whether sequence program executes
+
+## PROGRAM: seq 10
+
+## INPUT: None
+
+## OUTPUT: ok
+
+## EXIT CODE: ok
+
+## RESULT: ok
+------
+
+tests[1]->resultfile_name:
+test-results/testdirRTS2/prefRTS2-result-01.md
+---Resultfile Contents---
+# TEST 1: wc 1 to 10 (FAIL)
+## DESCRIPTION
+Checks that wc works with input; should fail as the input is slightly
+mangled.
+
+## PROGRAM: wc
+
+## INPUT:
+1
+2
+3
+4
+
+6
+7
+8
+9
+10
+
+## OUTPUT: MISMATCH at char position 3
+### Expect
+10 10 21
+
+### Actual
+10  9 20
+
+
+## EXIT CODE: ok
+
+## RESULT: FAIL
+------
+
+tests[2]->resultfile_name:
+test-results/testdirRTS2/prefRTS2-result-02.md
+---Resultfile Contents---
+# TEST 2: bash with output (ok)
+## DESCRIPTION
+Checks whether bash produces output that is correct. The test should
+pass.
+
+## PROGRAM: bash -c 'echo Hello world; echo More output; echo All done now;'
+
+## INPUT: None
+
+## OUTPUT: ok
+
+## EXIT CODE: ok
+
+## RESULT: ok
+------
+
+tests[3]->resultfile_name:
+test-results/testdirRTS2/prefRTS2-result-03.md
+---Resultfile Contents---
+# TEST 3: tail with input (FAIL)
+## DESCRIPTION
+Checks that the tail command works for given input. The expected
+output and the exit code are both wrong so the test should fail.
+
+## PROGRAM: tail -n 5
+
+## INPUT:
+Now we are engaged in a great civil war, testing
+whether that nation, or any nation so conceived
+and so dedicated, can long endure. We are met on a
+great battle-field of that war. We have come to
+dedicate a portion of that field, as a final
+resting place for those who here gave their lives
+that that nation might live. It is altogether
+fitting and proper that we should do this.
+
+## OUTPUT: MISMATCH at char position 101
+### Expect
+rtion of that field, as a final
+resting PLACE FOR those who here gave their lives
+### Actual
+rtion of that field, as a final
+resting place for those who here gave their lives
+
+## EXIT CODE: MISMATCH
+- Expect: 3
+- Actual: 0
+
+## RESULT: FAIL
+------
+
+#+END_SRC
+
+* suite_run_tests_singleproc3
+#+TESTY: program='./test_chester suite_run_tests_singleproc3'
+#+BEGIN_SRC sh
+IF_TEST("suite_run_tests_singleproc3") { 
+    // Loads a file with 4 tests but sets the suite so that only 2 of
+    // the 4 tests run. Checks that suite_run_tests_singleproc()
+    // honors the tests_torun[] and tests_torun_count fields as
+    // containing the tests that should be run. All tests fail.
+    suite_t suite;
+    suite_test_setup(&suite,"data/four_tests.md","RTS3");
+    suite.tests_torun_count = 2;
+    suite.tests_torun[0] = 1;   // only run 2 tests of the 4
+    suite.tests_torun[1] = 3;
+    printf("CALLING FUNCTION\n");
+    ret = suite_run_tests_singleproc(&suite);
+    printf("FUNCTION DONE\n");
+    printf("ret: %d\n",ret);
+    suite_test_print_all(&suite);
+    suite_dealloc(&suite);
+}
+---OUTPUT---
+CALLING FUNCTION
+Running with single process: .. Done
+FUNCTION DONE
+ret: 0
+
+COMPLETED SUITE
+suite->infile_name: data/four_tests.md
+suite->tests_torun_count: 2
+suite->tests_passed:      0
+
+CONTENTS OF TESTDIR
+prefRTS3-input-01.txt
+prefRTS3-input-03.txt
+prefRTS3-output-01.txt
+prefRTS3-output-03.txt
+prefRTS3-result-01.md
+prefRTS3-result-03.md
+
+TEST RESULTS
+tests[1]->resultfile_name:
+test-results/testdirRTS3/prefRTS3-result-01.md
+---Resultfile Contents---
+# TEST 1: wc 1 to 10 (FAIL)
+## DESCRIPTION
+Checks that wc works with input; should fail as the input is slightly
+mangled.
+
+## PROGRAM: wc
+
+## INPUT:
+1
+2
+3
+4
+
+6
+7
+8
+9
+10
+
+## OUTPUT: MISMATCH at char position 3
+### Expect
+10 10 21
+
+### Actual
+10  9 20
+
+
+## EXIT CODE: ok
+
+## RESULT: FAIL
+------
+
+tests[3]->resultfile_name:
+test-results/testdirRTS3/prefRTS3-result-03.md
+---Resultfile Contents---
+# TEST 3: tail with input (FAIL)
+## DESCRIPTION
+Checks that the tail command works for given input. The expected
+output and the exit code are both wrong so the test should fail.
+
+## PROGRAM: tail -n 5
+
+## INPUT:
+Now we are engaged in a great civil war, testing
+whether that nation, or any nation so conceived
+and so dedicated, can long endure. We are met on a
+great battle-field of that war. We have come to
+dedicate a portion of that field, as a final
+resting place for those who here gave their lives
+that that nation might live. It is altogether
+fitting and proper that we should do this.
+
+## OUTPUT: MISMATCH at char position 101
+### Expect
+rtion of that field, as a final
+resting PLACE FOR those who here gave their lives
+### Actual
+rtion of that field, as a final
+resting place for those who here gave their lives
+
+## EXIT CODE: MISMATCH
+- Expect: 3
+- Actual: 0
+
+## RESULT: FAIL
+------
+
+#+END_SRC
+
+* suite_run_tests_singleproc4
+#+TESTY: program='./test_chester suite_run_tests_singleproc4'
+#+BEGIN_SRC sh
+IF_TEST("suite_run_tests_singleproc4") { 
+    // Loads a suite that has some special cases of tests like test
+    // programs that are signaled, have empty input, fail due to
+    // mismatched exit codes, etc. Runs all tests in the suite and
+    // checks shows results files to ensure they are formatted
+    // correctly.
+    suite_t suite;
+    suite_test_setup(&suite,"data/special_cases.md","RTS4");
+    suite.tests_torun_count = suite.tests_count;
+    for(int i=0; i<suite.tests_count; i++){
+      suite.tests_torun[i] = i;
+    }
+    printf("CALLING FUNCTION\n");
+    ret = suite_run_tests_singleproc(&suite);
+    printf("FUNCTION DONE\n");
+    printf("ret: %d\n",ret);
+    suite_test_print_all(&suite);
+    suite_dealloc(&suite);
+}
+---OUTPUT---
+CALLING FUNCTION
+Running with single process: ......... Done
+FUNCTION DONE
+ret: 0
+
+COMPLETED SUITE
+suite->infile_name: data/special_cases.md
+suite->tests_torun_count: 9
+suite->tests_passed:      6
+
+CONTENTS OF TESTDIR
+prefRTS4-input-03.txt
+prefRTS4-input-04.txt
+prefRTS4-input-05.txt
+prefRTS4-input-06.txt
+prefRTS4-output-00.txt
+prefRTS4-output-01.txt
+prefRTS4-output-02.txt
+prefRTS4-output-03.txt
+prefRTS4-output-04.txt
+prefRTS4-output-05.txt
+prefRTS4-output-06.txt
+prefRTS4-output-07.txt
+prefRTS4-output-08.txt
+prefRTS4-result-00.md
+prefRTS4-result-01.md
+prefRTS4-result-02.md
+prefRTS4-result-03.md
+prefRTS4-result-04.md
+prefRTS4-result-05.md
+prefRTS4-result-06.md
+prefRTS4-result-07.md
+prefRTS4-result-08.md
+
+TEST RESULTS
+tests[0]->resultfile_name:
+test-results/testdirRTS4/prefRTS4-result-00.md
+---Resultfile Contents---
+# TEST 0: Segfault Test A (FAIL)
+## DESCRIPTION
+Checks that the data/raise_sigsegv.sh program runs and the return code
+is properly handled. The test should fail.
+
+## PROGRAM: bash data/raise_sigsegv.sh
+
+## INPUT: None
+
+## OUTPUT: ok
+
+## EXIT CODE: MISMATCH
+- Expect: 0
+- Actual: -11
+
+## RESULT: FAIL
+------
+
+tests[1]->resultfile_name:
+test-results/testdirRTS4/prefRTS4-result-01.md
+---Resultfile Contents---
+# TEST 1: Segfault Test B (ok)
+## DESCRIPTION
+Like previous test but sets exit code expectation to the segfault signal.
+
+## PROGRAM: bash data/raise_sigsegv.sh
+
+## INPUT: None
+
+## OUTPUT: ok
+
+## EXIT CODE: ok
+
+## RESULT: ok
+------
+
+tests[2]->resultfile_name:
+test-results/testdirRTS4/prefRTS4-result-02.md
+---Resultfile Contents---
+# TEST 2: Error Redirect (ok)
+## DESCRIPTION
+Uses data/print_stdout_stderr.sh to produce output on both stdout and
+stderr to make sure tests redirect both to the results file.
+
+## PROGRAM: bash data/print_stdout_stderr.sh
+
+## INPUT: None
+
+## OUTPUT: ok
+
+## EXIT CODE: ok
+
+## RESULT: ok
+------
+
+tests[3]->resultfile_name:
+test-results/testdirRTS4/prefRTS4-result-03.md
+---Resultfile Contents---
+# TEST 3: Empty Input (ok)
+## DESCRIPTION
+Sends empty input to a program.
+
+## PROGRAM: wc
+
+## INPUT:
+
+## OUTPUT: skipped check
+
+## EXIT CODE: ok
+
+## RESULT: ok
+------
+
+tests[4]->resultfile_name:
+test-results/testdirRTS4/prefRTS4-result-04.md
+---Resultfile Contents---
+# TEST 4: Term Signal A (FAIL)
+## DESCRIPTION
+Checks that term signal is handled properly. Test fails as output and
+exit_cod do not match expected.
+
+## PROGRAM: bash data/count_terminate.sh play
+
+## INPUT:
+All work and no play makes Jack a dull boy.
+All work and no Play makes Jack a dull boy.
+All work and no pLay makes Jack a dull boy.
+All work and no pLaY makes Jack a dull boy.
+All work and no PLAY makes Jack a dull boy.
+All work and no PlAy makes Jack a dull boy.
+
+## OUTPUT: MISMATCH at char position 1
+### Expect
+Terminating now
+
+### Actual
+The word 'play' appeared on 6 lines
+Termin
+
+## EXIT CODE: MISMATCH
+- Expect: 0
+- Actual: -15
+
+## RESULT: FAIL
+------
+
+tests[5]->resultfile_name:
+test-results/testdirRTS4/prefRTS4-result-05.md
+---Resultfile Contents---
+# TEST 5: Term Signal B (FAIL)
+## DESCRIPTION
+Checks that term signal is handled properly. Test passes due to exit
+code not matching expectation.
+
+## PROGRAM: bash data/count_terminate.sh play
+
+## INPUT:
+All work and no play makes Jack a dull boy.
+All work and no Play makes Jack a dull boy.
+All work and no pLay makes Jack a dull boy.
+All work and no pLaY makes Jack a dull boy.
+All work and no PLAY makes Jack a dull boy.
+All work and no PlAy makes Jack a dull boy.
+
+## OUTPUT: ok
+
+## EXIT CODE: MISMATCH
+- Expect: 0
+- Actual: -15
+
+## RESULT: FAIL
+------
+
+tests[6]->resultfile_name:
+test-results/testdirRTS4/prefRTS4-result-06.md
+---Resultfile Contents---
+# TEST 6: Term Signal C (ok)
+## DESCRIPTION
+Checks that term signal is handled properly. Test passes due to
+expected values being met.
+
+## PROGRAM: bash data/count_terminate.sh play
+
+## INPUT:
+All work and no play makes Jack a dull boy.
+All work and no Play makes Jack a dull boy.
+All work and no pLay makes Jack a dull boy.
+All work and no pLaY makes Jack a dull boy.
+All work and no PLAY makes Jack a dull boy.
+All work and no PlAy makes Jack a dull boy.
+
+## OUTPUT: ok
+
+## EXIT CODE: ok
+
+## RESULT: ok
+------
+
+tests[7]->resultfile_name:
+test-results/testdirRTS4/prefRTS4-result-07.md
+---Resultfile Contents---
+# TEST 7: Ignore Output (ok)
+## DESCRIPTION
+Runs a command with unpredictable output but that output should be
+ignored as no expected output is provided leading the test to pass.
+
+## PROGRAM: bash -c 'echo $RANDOM'
+
+## INPUT: None
+
+## OUTPUT: skipped check
+
+## EXIT CODE: ok
+
+## RESULT: ok
+------
+
+tests[8]->resultfile_name:
+test-results/testdirRTS4/prefRTS4-result-08.md
+---Resultfile Contents---
+# TEST 8: Empty Description (ok)
+## DESCRIPTION
+
+## PROGRAM: seq 4 2 12
+
+## INPUT: None
+
+## OUTPUT: ok
+
+## EXIT CODE: ok
+
+## RESULT: ok
+------
+
+#+END_SRC
+
+* suite_run_tests_singleproc5
+#+TESTY: program='./test_chester suite_run_tests_singleproc5'
+#+BEGIN_SRC sh
+IF_TEST("suite_run_tests_singleproc5") { 
+    // Loads a suite that has some special cases but only runs the
+    // even numbered tests.
+    suite_t suite;
+    suite_test_setup(&suite,"data/special_cases.md","RTS5");
+    suite.tests_torun_count = 0;
+    for(int i=0; i<suite.tests_count; i+=2){
+      suite.tests_torun[i/2] = i; // run even # tests only
+      suite.tests_torun_count++;
+    }
+    printf("CALLING FUNCTION\n");
+    ret = suite_run_tests_singleproc(&suite);
+    printf("FUNCTION DONE\n");
+    printf("ret: %d\n",ret);
+    suite_test_print_all(&suite);
+    suite_dealloc(&suite);
+}
+---OUTPUT---
+CALLING FUNCTION
+Running with single process: ..... Done
+FUNCTION DONE
+ret: 0
+
+COMPLETED SUITE
+suite->infile_name: data/special_cases.md
+suite->tests_torun_count: 5
+suite->tests_passed:      3
+
+CONTENTS OF TESTDIR
+prefRTS5-input-04.txt
+prefRTS5-input-06.txt
+prefRTS5-output-00.txt
+prefRTS5-output-02.txt
+prefRTS5-output-04.txt
+prefRTS5-output-06.txt
+prefRTS5-output-08.txt
+prefRTS5-result-00.md
+prefRTS5-result-02.md
+prefRTS5-result-04.md
+prefRTS5-result-06.md
+prefRTS5-result-08.md
+
+TEST RESULTS
+tests[0]->resultfile_name:
+test-results/testdirRTS5/prefRTS5-result-00.md
+---Resultfile Contents---
+# TEST 0: Segfault Test A (FAIL)
+## DESCRIPTION
+Checks that the data/raise_sigsegv.sh program runs and the return code
+is properly handled. The test should fail.
+
+## PROGRAM: bash data/raise_sigsegv.sh
+
+## INPUT: None
+
+## OUTPUT: ok
+
+## EXIT CODE: MISMATCH
+- Expect: 0
+- Actual: -11
+
+## RESULT: FAIL
+------
+
+tests[2]->resultfile_name:
+test-results/testdirRTS5/prefRTS5-result-02.md
+---Resultfile Contents---
+# TEST 2: Error Redirect (ok)
+## DESCRIPTION
+Uses data/print_stdout_stderr.sh to produce output on both stdout and
+stderr to make sure tests redirect both to the results file.
+
+## PROGRAM: bash data/print_stdout_stderr.sh
+
+## INPUT: None
+
+## OUTPUT: ok
+
+## EXIT CODE: ok
+
+## RESULT: ok
+------
+
+tests[4]->resultfile_name:
+test-results/testdirRTS5/prefRTS5-result-04.md
+---Resultfile Contents---
+# TEST 4: Term Signal A (FAIL)
+## DESCRIPTION
+Checks that term signal is handled properly. Test fails as output and
+exit_cod do not match expected.
+
+## PROGRAM: bash data/count_terminate.sh play
+
+## INPUT:
+All work and no play makes Jack a dull boy.
+All work and no Play makes Jack a dull boy.
+All work and no pLay makes Jack a dull boy.
+All work and no pLaY makes Jack a dull boy.
+All work and no PLAY makes Jack a dull boy.
+All work and no PlAy makes Jack a dull boy.
+
+## OUTPUT: MISMATCH at char position 1
+### Expect
+Terminating now
+
+### Actual
+The word 'play' appeared on 6 lines
+Termin
+
+## EXIT CODE: MISMATCH
+- Expect: 0
+- Actual: -15
+
+## RESULT: FAIL
+------
+
+tests[6]->resultfile_name:
+test-results/testdirRTS5/prefRTS5-result-06.md
+---Resultfile Contents---
+# TEST 6: Term Signal C (ok)
+## DESCRIPTION
+Checks that term signal is handled properly. Test passes due to
+expected values being met.
+
+## PROGRAM: bash data/count_terminate.sh play
+
+## INPUT:
+All work and no play makes Jack a dull boy.
+All work and no Play makes Jack a dull boy.
+All work and no pLay makes Jack a dull boy.
+All work and no pLaY makes Jack a dull boy.
+All work and no PLAY makes Jack a dull boy.
+All work and no PlAy makes Jack a dull boy.
+
+## OUTPUT: ok
+
+## EXIT CODE: ok
+
+## RESULT: ok
+------
+
+tests[8]->resultfile_name:
+test-results/testdirRTS5/prefRTS5-result-08.md
+---Resultfile Contents---
+# TEST 8: Empty Description (ok)
+## DESCRIPTION
+
+## PROGRAM: seq 4 2 12
+
+## INPUT: None
+
+## OUTPUT: ok
+
+## EXIT CODE: ok
+
+## RESULT: ok
+------
+
+#+END_SRC
+
+* suite_run_tests_singleproc_err
+#+TESTY: program='./test_chester suite_run_tests_singleproc_err'
+#+BEGIN_SRC sh
+IF_TEST("suite_run_tests_singleproc_err") { 
+    // Loads a test suite with 4 tests and runs all 4 of them via
+    // suite_run_tests_singleproc(). 2 of the 4 tests pass.. Checks
+    // that the results file for each test is formatted correctly.
+    suite_t suite;
+    suite_test_setup(&suite,"data/four_tests.md","RTSerr");
+    suite.tests_torun_count = 4;
+    for(int i=0; i<4; i++){
+      suite.tests_torun[i] = i;
+    }
+    printf("CREATING ERROR CONDITIONS FOR TESTDIR\n");
+    system("ln -s /usr/bin/gcc test-results/testdirRTSerr");
+    printf("CALLING FUNCTION\n");
+    ret = suite_run_tests_singleproc(&suite);
+    printf("FUNCTION DONE\n");
+    printf("ret: %d\n",ret);
+    // suite_test_print_all(&suite);
+    suite_dealloc(&suite);
+    system("rm -f test-results/testdirRTSerr");
+}
+---OUTPUT---
+CREATING ERROR CONDITIONS FOR TESTDIR
+CALLING FUNCTION
+ERROR: Could not create test directory 'test-results/testdirRTSerr'
+       Non-directory file with that name already exists
+ERROR: Failed to create test directory
+FUNCTION DONE
+ret: -1
+#+END_SRC
+
+* suite_print_results_table1
+#+TESTY: program='./test_chester suite_print_results_table1'
+#+BEGIN_SRC sh
+IF_TEST("suite_print_results_table1") { 
+    // Loads a test file with a single test, runs the suite, then
+    // checks the output of suite_print_results_table().
+    suite_t suite;
+    suite_test_setup(&suite,"data/one_test.md","PR1");
+    suite.tests_torun[0] = 0;
+    suite.tests_torun_count = 1;
+    printf("RUNNING SUITE\n");
+    ret = suite_run_tests_singleproc(&suite);
+    printf("SUITE DONE\n");
+    printf("\nCALLING RESULT TABLE FUNCTION\n");
+    suite_print_results_table(&suite);
+    suite_dealloc(&suite);
+}
+---OUTPUT---
+RUNNING SUITE
+Running with single process: . Done
+SUITE DONE
+
+CALLING RESULT TABLE FUNCTION
+ 0) seq check            : ok
+#+END_SRC
+
+* suite_print_results_table2
+#+TESTY: program='./test_chester suite_print_results_table2'
+#+BEGIN_SRC sh
+IF_TEST("suite_print_results_table2") { 
+    // Loads a suite file with 4 tests, runs the suite, then
+    // checks the output of suite_print_results_table().
+    suite_t suite;
+    suite_test_setup(&suite,"data/four_tests.md","PR2");
+    suite.tests_torun_count = 4;
+    for(int i=0; i<4; i++){
+      suite.tests_torun[i] = i;
+    }
+    printf("RUNNING SUITE\n");
+    ret = suite_run_tests_singleproc(&suite);
+    printf("SUITE DONE\n");
+    printf("\nCALLING RESULT TABLE FUNCTION\n");
+    suite_print_results_table(&suite);
+    suite_dealloc(&suite);
+}
+---OUTPUT---
+RUNNING SUITE
+Running with single process: .... Done
+SUITE DONE
+
+CALLING RESULT TABLE FUNCTION
+ 0) seq check            : ok
+ 1) wc 1 to 10           : FAIL -> see test-results/testdirPR2/prefPR2-result-01.md
+ 2) bash with output     : ok
+ 3) tail with input      : FAIL -> see test-results/testdirPR2/prefPR2-result-03.md
+#+END_SRC
+
+* suite_print_results_table3
+#+TESTY: program='./test_chester suite_print_results_table3'
+#+BEGIN_SRC sh
+IF_TEST("suite_print_results_table3") { 
+    // Loads a suite file with 4 tests, runs only 2 tests in the
+    // suite, then checks the output of suite_print_results_table().
+    suite_t suite;
+    suite_test_setup(&suite,"data/four_tests.md","RTS3");
+    suite.tests_torun_count = 2;
+    suite.tests_torun[0] = 1;   // only run 2 tests of the 4
+    suite.tests_torun[1] = 3;
+    printf("RUNNING SUITE\n");
+    ret = suite_run_tests_singleproc(&suite);
+    printf("SUITE DONE\n");
+    printf("\nCALLING RESULT TABLE FUNCTION\n");
+    suite_print_results_table(&suite);
+    suite_dealloc(&suite);
+}
+---OUTPUT---
+RUNNING SUITE
+Running with single process: .. Done
+SUITE DONE
+
+CALLING RESULT TABLE FUNCTION
+ 1) wc 1 to 10           : FAIL -> see test-results/testdirRTS3/prefRTS3-result-01.md
+ 3) tail with input      : FAIL -> see test-results/testdirRTS3/prefRTS3-result-03.md
+#+END_SRC
+
+* suite_print_results_table4
+#+TESTY: program='./test_chester suite_print_results_table4'
+#+BEGIN_SRC sh
+IF_TEST("suite_print_results_table4") { 
+    // Loads a suite file with 4 tests, runs only 2 tests in the
+    // suite, then checks the output of suite_print_results_table().
+    suite_t suite;
+    suite_test_setup(&suite,"data/special_cases.md","PR4");
+    suite.tests_torun_count = 0;
+    for(int i=0; i<suite.tests_count; i+=2){
+      suite.tests_torun[i/2] = i; // run even # tests only
+      suite.tests_torun_count++;
+    }
+    printf("RUNNING SUITE\n");
+    ret = suite_run_tests_singleproc(&suite);
+    printf("SUITE DONE\n");
+    printf("\nCALLING RESULT TABLE FUNCTION\n");
+    suite_print_results_table(&suite);
+    suite_dealloc(&suite);
+}
+---OUTPUT---
+RUNNING SUITE
+Running with single process: ..... Done
+SUITE DONE
+
+CALLING RESULT TABLE FUNCTION
+ 0) Segfault Test A      : FAIL -> see test-results/testdirPR4/prefPR4-result-00.md
+ 2) Error Redirect       : ok
+ 4) Term Signal A        : FAIL -> see test-results/testdirPR4/prefPR4-result-04.md
+ 6) Term Signal C        : ok
+ 8) Empty Description    : ok
+#+END_SRC
+
